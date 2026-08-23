@@ -76,4 +76,28 @@ describe('PaymentsService', () => {
     expect(paymentsRepository.create).toHaveBeenCalledTimes(1);
     expect(second).toEqual({ id: 'pay_1' });
   });
+
+  it('recovers from a true race (both deliveries pass the check before either commits)', async () => {
+    const { service, paymentsRepository } = buildService();
+    paymentsRepository.findByStripePaymentIntentId
+      .mockResolvedValueOnce(null) // first delivery's pre-check
+      .mockResolvedValueOnce(null) // second delivery's pre-check (races ahead of the insert)
+      .mockResolvedValueOnce({ id: 'pay_1' }); // second delivery's recovery lookup after P2002
+    paymentsRepository.create
+      .mockResolvedValueOnce({ id: 'pay_1' })
+      .mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: '6.19.3',
+        }),
+      );
+
+    const [first, second] = await Promise.all([
+      service.recordStripePayment('tenant_1', 'inv_1', 100, 'pi_race'),
+      service.recordStripePayment('tenant_1', 'inv_1', 100, 'pi_race'),
+    ]);
+
+    expect(first).toEqual({ id: 'pay_1' });
+    expect(second).toEqual({ id: 'pay_1' });
+  });
 });

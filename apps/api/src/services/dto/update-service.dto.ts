@@ -18,7 +18,7 @@ export class UpdateServiceDto {
   description?: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   basePrice?: number;
 

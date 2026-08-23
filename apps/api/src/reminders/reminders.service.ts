@@ -51,28 +51,36 @@ export class RemindersService {
     const dueReminders = await this.remindersRepository.findDuePending(
       new Date(),
     );
+
+    const remindersByTenant = new Map<string, typeof dueReminders>();
     for (const reminder of dueReminders) {
-      try {
-        await this.dispatchOne(
-          reminder.tenantId,
-          reminder.channel,
-          reminder.message,
-        );
-        await this.remindersRepository.markSent(reminder.id);
-      } catch (error) {
-        this.logger.error(`Failed to dispatch reminder ${reminder.id}`, error);
+      const tenantReminders = remindersByTenant.get(reminder.tenantId) ?? [];
+      tenantReminders.push(reminder);
+      remindersByTenant.set(reminder.tenantId, tenantReminders);
+    }
+
+    for (const [tenantId, reminders] of remindersByTenant) {
+      const owners =
+        await this.usersRepository.findOwnersWithPushTokens(tenantId);
+      for (const reminder of reminders) {
+        try {
+          await this.dispatchOne(owners, reminder.channel, reminder.message);
+          await this.remindersRepository.markSent(reminder.id);
+        } catch (error) {
+          this.logger.error(
+            `Failed to dispatch reminder ${reminder.id}`,
+            error,
+          );
+        }
       }
     }
   }
 
   private async dispatchOne(
-    tenantId: string,
+    owners: Awaited<ReturnType<UsersRepository['findOwnersWithPushTokens']>>,
     channel: ReminderChannel,
     message: string,
   ) {
-    const owners =
-      await this.usersRepository.findOwnersWithPushTokens(tenantId);
-
     if (channel === ReminderChannel.PUSH) {
       const tokens = owners.flatMap((owner) =>
         owner.pushTokens.map((t) => t.token),

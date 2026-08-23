@@ -15,7 +15,7 @@ export class CreateInvoiceDto {
   @IsString()
   bookingId?: string;
 
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   totalAmount: number;
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Card, Chip, Text } from "react-native-paper";
+import { ActivityIndicator, Card, Chip, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { apiFetch } from "@/lib/api";
 import type { Client, Invoice } from "@souvenirs/shared";
@@ -17,21 +17,30 @@ const STATUS_LABEL: Record<Invoice["status"], string> = {
 const PENDING_STATUSES: Invoice["status"][] = ["SENT", "PARTIAL", "OVERDUE"];
 
 export default function InvoicesScreen() {
+  const theme = useTheme();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [clientsById, setClientsById] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [invoicesData, clientsData] = await Promise.all([
-      apiFetch<Invoice[]>("/invoices"),
-      apiFetch<Client[]>("/clients"),
-    ]);
-    setInvoices(invoicesData.filter((i) => PENDING_STATUSES.includes(i.status)));
-    setClientsById(new Map(clientsData.map((c) => [c.id, c.name])));
+    setError(null);
+    try {
+      const [invoicesData, clientsData] = await Promise.all([
+        apiFetch<Invoice[]>("/invoices"),
+        apiFetch<Client[]>("/clients"),
+      ]);
+      setInvoices(invoicesData.filter((i) => PENDING_STATUSES.includes(i.status)));
+      setClientsById(new Map(clientsData.map((c) => [c.id, c.name])));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No pudimos cargar las facturas");
+    }
   }, []);
 
   useEffect(() => {
+    // Standard initial-fetch loading flag; not an external-system sync, just UI state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load().finally(() => setLoading(false));
   }, [load]);
 
@@ -54,6 +63,11 @@ export default function InvoicesScreen() {
       <Text variant="headlineSmall" style={styles.header}>
         Facturas pendientes
       </Text>
+      {error && (
+        <Text variant="bodySmall" style={[styles.error, { color: theme.colors.error }]}>
+          {error}
+        </Text>
+      )}
       <FlatList
         data={invoices}
         keyExtractor={(item) => item.id}
@@ -87,6 +101,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
+  error: { paddingHorizontal: 16, paddingBottom: 8 },
   listContent: { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
   card: { marginBottom: 4 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 },

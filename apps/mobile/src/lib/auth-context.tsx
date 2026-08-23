@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { apiFetch } from "./api";
 import { tokenStorage } from "./storage";
 
@@ -22,21 +30,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  async function login(email: string, password: string) {
+  const login = useCallback(async (email: string, password: string) => {
     const res = await apiFetch<{ accessToken: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
     await tokenStorage.set(res.accessToken);
     setToken(res.accessToken);
-  }
+  }, []);
 
-  async function logout() {
+  const logout = useCallback(async () => {
     await tokenStorage.clear();
     setToken(null);
-  }
+  }, []);
 
-  const value = useMemo(() => ({ token, isLoading, login, logout }), [token, isLoading]);
+  const value = useMemo(
+    () => ({ token, isLoading, login, logout }),
+    [token, isLoading, login, logout],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

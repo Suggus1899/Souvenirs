@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { InvoiceStatus, PaymentMethod } from '@prisma/client';
+import { InvoiceStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { InvoicesService } from '../invoices/invoices.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { CreatePaymentInput, PaymentsRepository } from './payments.repository';
@@ -46,12 +46,33 @@ export class PaymentsService {
     }
 
     const invoice = await this.invoicesService.findOne(tenantId, invoiceId);
-    return this.registerPayment(tenantId, invoice, {
-      invoiceId,
-      amount,
-      method: PaymentMethod.STRIPE,
-      stripePaymentIntentId,
-    });
+    try {
+      return await this.registerPayment(tenantId, invoice, {
+        invoiceId,
+        amount,
+        method: PaymentMethod.STRIPE,
+        stripePaymentIntentId,
+      });
+    } catch (error) {
+      // Two concurrent webhook deliveries for the same payment intent can both
+      // pass the check above before either commits — the unique index on
+      // stripePaymentIntentId is the real guard; recover by returning the row
+      // the other delivery just inserted instead of failing this one.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const existingAfterRace =
+          await this.paymentsRepository.findByStripePaymentIntentId(
+            tenantId,
+            stripePaymentIntentId,
+          );
+        if (existingAfterRace) {
+          return existingAfterRace;
+        }
+      }
+      throw error;
+    }
   }
 
   findAll(tenantId: string, invoiceId?: string) {

@@ -216,4 +216,38 @@ describe('Domain (e2e): clients, bookings, invoices, payments', () => {
       .expect(200);
     expect((afterPaymentRes.body as EntityBody).status).toBe('PAID');
   });
+
+  it('refuses to delete a client that has invoices', async () => {
+    const clientRes = await request(app.getHttpServer())
+      .post('/clients')
+      .set('Authorization', `Bearer ${tenantA.token}`)
+      .send({ name: 'Client With Invoice' })
+      .expect(201);
+    const client = clientRes.body as EntityBody;
+
+    await request(app.getHttpServer())
+      .post('/invoices')
+      .set('Authorization', `Bearer ${tenantA.token}`)
+      .send({ clientId: client.id, totalAmount: 20 })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/clients/${client.id}`)
+      .set('Authorization', `Bearer ${tenantA.token}`)
+      .expect(400);
+  });
+
+  it('deletes a client with no invoices', async () => {
+    const clientRes = await request(app.getHttpServer())
+      .post('/clients')
+      .set('Authorization', `Bearer ${tenantA.token}`)
+      .send({ name: 'Client Without Invoice' })
+      .expect(201);
+    const client = clientRes.body as EntityBody;
+
+    await request(app.getHttpServer())
+      .delete(`/clients/${client.id}`)
+      .set('Authorization', `Bearer ${tenantA.token}`)
+      .expect(204);
+  });
 });

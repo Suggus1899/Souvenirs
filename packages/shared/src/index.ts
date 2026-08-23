@@ -78,11 +78,15 @@ export interface Reminder {
   message: string;
 }
 
+export type Plan = "FREE" | "PRO";
+
 export interface Tenant {
   id: string;
   name: string;
+  plan: Plan;
   stripeAccountId: string | null;
   stripeOnboarded: boolean;
+  stripeCustomerId: string | null;
 }
 
 export type ExchangeRateSource = "BCV" | "PARALELO";

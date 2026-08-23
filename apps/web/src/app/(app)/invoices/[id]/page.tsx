@@ -36,9 +36,11 @@ export default async function InvoiceDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const invoice = await apiFetch<Invoice>(`/invoices/${id}`);
+  const [invoice, rates] = await Promise.all([
+    apiFetch<Invoice>(`/invoices/${id}`),
+    apiFetch<ExchangeRates>("/exchange-rate"),
+  ]);
   const client = await apiFetch<Client>(`/clients/${invoice.clientId}`);
-  const rates = await apiFetch<ExchangeRates>("/exchange-rate");
   const payments = invoice.payments ?? [];
   const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
 

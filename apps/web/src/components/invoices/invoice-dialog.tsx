@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ApiError } from "@/lib/api-error";
 import {
   Dialog,
   DialogContent,
@@ -56,7 +57,13 @@ export function InvoiceDialog({ invoice, clients }: { invoice?: Invoice; clients
       setOpen(false);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Algo salió mal");
+      if (err instanceof ApiError && err.status === 403) {
+        toast.error(err.message, {
+          action: { label: "Ver planes", onClick: () => router.push("/settings") },
+        });
+      } else {
+        setError(err instanceof Error ? err.message : "Algo salió mal");
+      }
     } finally {
       setLoading(false);
     }

@@ -1,3 +1,8 @@
+export async function parseJsonBody(res: Response): Promise<unknown> {
+  const text = await res.text();
+  return text ? JSON.parse(text) : undefined;
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,

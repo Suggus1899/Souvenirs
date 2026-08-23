@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { ApiError, extractErrorMessage } from "./api-error";
+import { ApiError, extractErrorMessage, parseJsonBody } from "./api-error";
 import { SESSION_COOKIE } from "./session";
 
 /** Calls the Nest API directly from a Server Component / Route Handler, attaching the session JWT. */
@@ -17,8 +17,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     cache: "no-store",
   });
 
-  const text = await res.text();
-  const body: unknown = text ? JSON.parse(text) : undefined;
+  const body = await parseJsonBody(res);
 
   if (!res.ok) {
     throw new ApiError(res.status, extractErrorMessage(body, "Request failed"));

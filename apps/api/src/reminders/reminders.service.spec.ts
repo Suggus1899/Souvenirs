@@ -101,6 +101,35 @@ describe('RemindersService', () => {
     expect(remindersRepository.markSent).toHaveBeenCalledWith('rem_2');
   });
 
+  it('fetches owners once per tenant, not once per reminder', async () => {
+    const { service, remindersRepository, usersRepository } = buildService();
+    remindersRepository.findDuePending.mockResolvedValueOnce([
+      {
+        id: 'rem_1',
+        tenantId: 'tenant_1',
+        channel: ReminderChannel.PUSH,
+        message: 'Payment due 1',
+      },
+      {
+        id: 'rem_2',
+        tenantId: 'tenant_1',
+        channel: ReminderChannel.EMAIL,
+        message: 'Payment due 2',
+      },
+      {
+        id: 'rem_3',
+        tenantId: 'tenant_2',
+        channel: ReminderChannel.PUSH,
+        message: 'Payment due 3',
+      },
+    ]);
+
+    await service.dispatchDue();
+
+    expect(usersRepository.findOwnersWithPushTokens).toHaveBeenCalledTimes(2);
+    expect(remindersRepository.markSent).toHaveBeenCalledTimes(3);
+  });
+
   it('leaves a reminder PENDING for the next tick if dispatch fails', async () => {
     const { service, remindersRepository, pushService } = buildService();
     remindersRepository.findDuePending.mockResolvedValueOnce([

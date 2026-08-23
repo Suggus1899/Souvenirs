@@ -1,5 +1,7 @@
 import { CheckCircleIcon, ExclamationCircleIcon } from "@heroicons/react/24/outline";
+import { BillingButton } from "@/components/settings/billing-button";
 import { StripeOnboardingButton } from "@/components/settings/stripe-onboarding-button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-server";
 import type { Tenant } from "@souvenirs/shared";
@@ -10,6 +12,24 @@ export default async function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-heading text-3xl">Configuración</h1>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CardTitle>Plan</CardTitle>
+            <Badge variant={tenant.plan === "PRO" ? "default" : "outline"}>
+              {tenant.plan === "PRO" ? "Pro" : "Gratis"}
+            </Badge>
+          </div>
+          <CardDescription>
+            {tenant.plan === "PRO"
+              ? "Facturas ilimitadas y cobro online con Stripe."
+              : "Hasta 5 facturas por mes. Actualizá a Pro para facturar sin límite."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BillingButton plan={tenant.plan} />
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Cobros con Stripe</CardTitle>

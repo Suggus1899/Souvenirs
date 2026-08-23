@@ -1,9 +1,10 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InvoiceStatus } from '@prisma/client';
+import { InvoiceStatus, Plan } from '@prisma/client';
 import { BookingsService } from '../bookings/bookings.service';
 import { ClientsService } from '../clients/clients.service';
 import { RemindersService } from '../reminders/reminders.service';
@@ -12,6 +13,8 @@ import { TenantsService } from '../tenants/tenants.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { InvoicesRepository } from './invoices.repository';
+
+const FREE_PLAN_MONTHLY_INVOICE_LIMIT = 5;
 
 @Injectable()
 export class InvoicesService {
@@ -25,11 +28,24 @@ export class InvoicesService {
   ) {}
 
   async create(tenantId: string, dto: CreateInvoiceDto) {
+    const tenant = await this.tenantsService.findOne(tenantId);
     await this.clientsService.findOne(tenantId, dto.clientId);
     if (dto.bookingId) {
       await this.bookingsService.findOne(tenantId, dto.bookingId);
     }
-    const invoice = await this.invoicesRepository.create(tenantId, dto);
+
+    const monthlyLimit =
+      tenant.plan === Plan.FREE ? FREE_PLAN_MONTHLY_INVOICE_LIMIT : undefined;
+    const invoice = await this.invoicesRepository.create(
+      tenantId,
+      dto,
+      monthlyLimit,
+    );
+    if (!invoice) {
+      throw new ForbiddenException(
+        `Llegaste al límite de ${FREE_PLAN_MONTHLY_INVOICE_LIMIT} facturas de tu plan gratis este mes. Actualizá a Pro para seguir facturando.`,
+      );
+    }
 
     if (invoice.dueDate) {
       const message = `Payment of ${invoice.totalAmount.toString()} ${invoice.currency} is due for invoice ${invoice.id}`;

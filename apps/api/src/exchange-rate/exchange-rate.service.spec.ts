@@ -41,6 +41,21 @@ describe('ExchangeRateService', () => {
     );
   });
 
+  it('keeps the cached rate and does not throw if the response shape is malformed', async () => {
+    const { service, exchangeRateRepository } = buildService();
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve([
+          { fuente: 'oficial', promedio: 'not-a-number' },
+          { fuente: 'desconocida', promedio: 100 },
+        ]),
+    });
+
+    await expect(service.refresh()).resolves.toBeUndefined();
+    expect(exchangeRateRepository.upsert).not.toHaveBeenCalled();
+  });
+
   it('keeps the cached rate and does not throw if the external API fails', async () => {
     const { service, exchangeRateRepository } = buildService();
     global.fetch = jest.fn().mockRejectedValue(new Error('network down'));

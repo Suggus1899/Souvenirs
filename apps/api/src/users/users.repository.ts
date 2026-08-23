@@ -1,24 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { Platform } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
 export class UsersRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tenantDb: TenantPrismaService,
+  ) {}
 
+  /** Pre-auth (login): no tenant context yet — stays on the owner connection. */
   findByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
-  findById(id: string) {
-    return this.prisma.user.findUnique({ where: { id } });
-  }
-
   findOwnersWithPushTokens(tenantId: string) {
-    return this.prisma.user.findMany({
-      where: { tenantId, role: 'OWNER' },
-      include: { pushTokens: true },
-    });
+    return this.tenantDb.run(tenantId, (tx) =>
+      tx.user.findMany({
+        where: { tenantId, role: 'OWNER' },
+        include: { pushTokens: true },
+      }),
+    );
   }
 
   upsertPushToken(
@@ -27,10 +30,12 @@ export class UsersRepository {
     token: string,
     platform: Platform,
   ) {
-    return this.prisma.pushToken.upsert({
-      where: { token },
-      create: { tenantId, userId, token, platform },
-      update: { tenantId, userId, platform },
-    });
+    return this.tenantDb.run(tenantId, (tx) =>
+      tx.pushToken.upsert({
+        where: { token },
+        create: { tenantId, userId, token, platform },
+        update: { tenantId, userId, platform },
+      }),
+    );
   }
 }

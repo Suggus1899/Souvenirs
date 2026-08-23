@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { extractErrorMessage } from "@/lib/api-error";
+import { extractErrorMessage, parseJsonBody } from "@/lib/api-error";
 import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
@@ -13,8 +13,7 @@ export async function POST(req: NextRequest) {
     cache: "no-store",
   });
 
-  const text = await res.text();
-  const body: unknown = text ? JSON.parse(text) : undefined;
+  const body = await parseJsonBody(res);
 
   if (!res.ok) {
     return NextResponse.json(

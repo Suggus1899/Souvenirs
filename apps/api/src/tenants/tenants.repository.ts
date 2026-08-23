@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { Plan, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 
@@ -8,6 +8,12 @@ interface CreateWithOwnerInput {
   ownerName: string;
   ownerEmail: string;
   passwordHash: string;
+}
+
+interface ApplySubscriptionStateInput {
+  plan: Plan;
+  stripeSubscriptionId: string | null;
+  subscriptionStatus: string | null;
 }
 
 @Injectable()
@@ -59,5 +65,21 @@ export class TenantsRepository {
       where: { id },
       data: { stripeOnboarded },
     });
+  }
+
+  setStripeCustomerId(tenantId: string, stripeCustomerId: string) {
+    return this.tenantDb.run(tenantId, (tx) =>
+      tx.tenant.update({ where: { id: tenantId }, data: { stripeCustomerId } }),
+    );
+  }
+
+  /** Called from the Stripe webhook, before any tenant context is known — stays on the owner connection. */
+  findByStripeCustomerId(stripeCustomerId: string) {
+    return this.prisma.tenant.findFirst({ where: { stripeCustomerId } });
+  }
+
+  /** Called from the Stripe webhook — stays on the owner connection. */
+  applySubscriptionState(id: string, input: ApplySubscriptionStateInput) {
+    return this.prisma.tenant.update({ where: { id }, data: input });
   }
 }

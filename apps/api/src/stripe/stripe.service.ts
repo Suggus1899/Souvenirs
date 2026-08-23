@@ -12,6 +12,12 @@ interface CreateCheckoutSessionParams {
   description: string;
 }
 
+interface CreateSubscriptionCheckoutSessionParams {
+  tenantId: string;
+  customerId?: string;
+  customerEmail?: string;
+}
+
 @Injectable()
 export class StripeService {
   constructor(
@@ -56,6 +62,34 @@ export class StripeService {
       metadata: { invoiceId: params.invoiceId, tenantId: params.tenantId },
       success_url: `${webAppUrl}/invoices/${params.invoiceId}?payment=success`,
       cancel_url: `${webAppUrl}/invoices/${params.invoiceId}?payment=cancelled`,
+    });
+  }
+
+  createSubscriptionCheckoutSession(
+    params: CreateSubscriptionCheckoutSessionParams,
+  ): Promise<Stripe.Checkout.Session> {
+    const webAppUrl = this.configService.getOrThrow<string>('WEB_APP_URL');
+    const priceId = this.configService.getOrThrow<string>(
+      'STRIPE_PRO_PRICE_ID',
+    );
+    return this.stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: 1 }],
+      customer: params.customerId,
+      customer_email: params.customerId ? undefined : params.customerEmail,
+      metadata: { tenantId: params.tenantId },
+      success_url: `${webAppUrl}/settings?billing=success`,
+      cancel_url: `${webAppUrl}/settings?billing=cancelled`,
+    });
+  }
+
+  createBillingPortalSession(
+    customerId: string,
+  ): Promise<Stripe.BillingPortal.Session> {
+    const webAppUrl = this.configService.getOrThrow<string>('WEB_APP_URL');
+    return this.stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${webAppUrl}/settings`,
     });
   }
 

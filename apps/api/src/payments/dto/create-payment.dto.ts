@@ -12,7 +12,7 @@ export class CreatePaymentDto {
   @IsString()
   invoiceId: string;
 
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   amount: number;
 

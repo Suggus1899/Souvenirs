@@ -67,12 +67,15 @@ enum Platform {
 }
 
 model Tenant {
-  id              String   @id @default(cuid())
-  name            String
-  plan            Plan     @default(FREE)
-  stripeAccountId String?
-  stripeOnboarded Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  id                   String   @id @default(cuid())
+  name                 String
+  plan                 Plan     @default(FREE)
+  stripeAccountId      String?
+  stripeOnboarded      Boolean  @default(false)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  subscriptionStatus   String?
+  createdAt            DateTime @default(now())
 
   users      User[]
   clients    Client[]
@@ -83,6 +86,8 @@ model Tenant {
   reminders  Reminder[]
   pushTokens PushToken[]
 
+  @@unique([stripeAccountId])
+  @@unique([stripeCustomerId])
   @@map("tenants")
 }
 
@@ -116,7 +121,7 @@ model Client {
   bookings Booking[]
   invoices Invoice[]
 
-  @@index([tenantId])
+  @@index([tenantId, createdAt])
   @@map("clients")
 }
 
@@ -155,8 +160,7 @@ model Booking {
   createdBy User      @relation("BookingCreatedBy", fields: [createdById], references: [id])
   invoices  Invoice[]
 
-  @@index([tenantId])
-  @@index([scheduledAt])
+  @@index([tenantId, scheduledAt])
   @@map("bookings")
 }
 
@@ -176,10 +180,10 @@ model Invoice {
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   booking  Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client   Client    @relation(fields: [clientId], references: [id], onDelete: Restrict)
   payments Payment[]
 
-  @@index([tenantId])
+  @@index([tenantId, createdAt])
   @@index([clientId])
   @@map("invoices")
 }
@@ -197,7 +201,8 @@ model Payment {
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
+  @@unique([stripePaymentIntentId])
+  @@index([tenantId, paidAt])
   @@index([invoiceId])
   @@map("payments")
 }
@@ -215,8 +220,7 @@ model Reminder {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
-  @@index([relatedType, relatedId])
-  @@index([remindAt, status])
+  @@index([status, remindAt])
   @@map("reminders")
 }
 

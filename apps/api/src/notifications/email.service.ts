@@ -4,13 +4,16 @@ import { Resend } from 'resend';
 
 @Injectable()
 export class EmailService {
-  constructor(private readonly configService: ConfigService) {}
+  private readonly resend: Resend;
 
-  async send(to: string, subject: string, text: string): Promise<void> {
-    const resend = new Resend(
+  constructor(private readonly configService: ConfigService) {
+    this.resend = new Resend(
       this.configService.getOrThrow<string>('RESEND_API_KEY'),
     );
+  }
+
+  async send(to: string, subject: string, text: string): Promise<void> {
     const from = this.configService.getOrThrow<string>('RESEND_FROM_EMAIL');
-    await resend.emails.send({ from, to, subject, text });
+    await this.resend.emails.send({ from, to, subject, text });
   }
 }

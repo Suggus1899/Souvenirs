@@ -16,7 +16,7 @@ export class CreateServiceDto {
   @IsString()
   description?: string;
 
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   basePrice: number;
 

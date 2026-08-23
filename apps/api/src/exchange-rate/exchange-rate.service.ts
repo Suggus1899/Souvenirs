@@ -13,6 +13,17 @@ const SOURCE_BY_FUENTE: Record<DolarApiEntry['fuente'], ExchangeRateSource> = {
   paralelo: ExchangeRateSource.PARALELO,
 };
 
+function isDolarApiEntry(value: unknown): value is DolarApiEntry {
+  if (typeof value !== 'object' || value === null) return false;
+  const { fuente, promedio } = value as Record<string, unknown>;
+  return (
+    (fuente === 'oficial' || fuente === 'paralelo') &&
+    typeof promedio === 'number' &&
+    Number.isFinite(promedio) &&
+    promedio > 0
+  );
+}
+
 @Injectable()
 export class ExchangeRateService {
   private readonly logger = new Logger(ExchangeRateService.name);
@@ -37,17 +48,22 @@ export class ExchangeRateService {
       if (!res.ok) {
         throw new Error(`dolarapi responded with ${res.status}`);
       }
-      const entries = (await res.json()) as DolarApiEntry[];
+      const body: unknown = await res.json();
+      if (!Array.isArray(body)) {
+        throw new Error('dolarapi response is not an array');
+      }
+      const entries = body.filter(isDolarApiEntry);
+      if (entries.length === 0) {
+        throw new Error('dolarapi response contained no valid entries');
+      }
 
       await Promise.all(
-        entries
-          .filter((entry) => SOURCE_BY_FUENTE[entry.fuente])
-          .map((entry) =>
-            this.exchangeRateRepository.upsert(
-              SOURCE_BY_FUENTE[entry.fuente],
-              entry.promedio,
-            ),
+        entries.map((entry) =>
+          this.exchangeRateRepository.upsert(
+            SOURCE_BY_FUENTE[entry.fuente],
+            entry.promedio,
           ),
+        ),
       );
     } catch (error) {
       // Best-effort: keep serving the last cached rate rather than breaking invoice pages.
