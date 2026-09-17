@@ -7,3 +7,9 @@ build/
 *.log
 .DS_Store
 coverage/
+# Local environment files
+!.env.*.example
+!.env.sample
+!.env.*.sample
+!.env.template
+!.env.*.template
