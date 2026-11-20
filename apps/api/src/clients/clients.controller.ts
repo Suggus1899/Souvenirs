@@ -1,3 +1,4 @@
+import { ListClientsQueryDto } from './dto/list-clients-query.dto';
 import {
   Body,
   Controller,
@@ -8,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -27,8 +29,11 @@ export class ClientsController {
   }
 
   @Get()
-  findAll(@CurrentTenant() tenantId: string) {
-    return this.clientsService.findAll(tenantId);
+  findAll(
+    @CurrentTenant() tenantId: string,
+    @Query() query: ListClientsQueryDto,
+  ) {
+    return this.clientsService.findAll(tenantId, query);
   }
 
   @Get(':id')

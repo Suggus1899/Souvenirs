@@ -1,3 +1,4 @@
+import { ListInvoicesQueryDto } from './dto/list-invoices-query.dto';
 import {
   Body,
   Controller,
@@ -5,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -24,8 +26,11 @@ export class InvoicesController {
   }
 
   @Get()
-  findAll(@CurrentTenant() tenantId: string) {
-    return this.invoicesService.findAll(tenantId);
+  findAll(
+    @CurrentTenant() tenantId: string,
+    @Query() query: ListInvoicesQueryDto,
+  ) {
+    return this.invoicesService.findAll(tenantId, query);
   }
 
   @Get(':id')

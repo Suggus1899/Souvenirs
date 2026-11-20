@@ -1,3 +1,4 @@
+import { ListInvoicesQueryDto } from './dto/list-invoices-query.dto';
 import {
   BadRequestException,
   ForbiddenException,
@@ -71,8 +72,8 @@ export class InvoicesService {
     return invoice;
   }
 
-  findAll(tenantId: string) {
-    return this.invoicesRepository.findAll(tenantId);
+  findAll(tenantId: string, query: ListInvoicesQueryDto = {}) {
+    return this.invoicesRepository.findAll(tenantId, query);
   }
 
   async findOne(tenantId: string, id: string) {

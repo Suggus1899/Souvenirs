@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InvoiceStatus } from '@prisma/client';
+import { pageArgs } from '../common/pagination-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { ListInvoicesQueryDto } from './dto/list-invoices-query.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 
 @Injectable()
@@ -51,11 +53,16 @@ export class InvoicesRepository {
     });
   }
 
-  findAll(tenantId: string) {
+  findAll(tenantId: string, query: ListInvoicesQueryDto = {}) {
     return this.tenantDb.run(tenantId, (tx) =>
       tx.invoice.findMany({
-        where: { tenantId },
+        where: {
+          tenantId,
+          ...(query.status ? { status: query.status } : {}),
+          ...(query.clientId ? { clientId: query.clientId } : {}),
+        },
         orderBy: { createdAt: 'desc' },
+        ...pageArgs(query),
       }),
     );
   }

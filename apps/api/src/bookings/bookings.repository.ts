@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { pageArgs } from '../common/pagination-query.dto';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
+import { ListBookingsQueryDto } from './dto/list-bookings-query.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 
@@ -20,11 +22,24 @@ export class BookingsRepository {
     );
   }
 
-  findAll(tenantId: string) {
+  findAll(tenantId: string, query: ListBookingsQueryDto = {}) {
     return this.tenantDb.run(tenantId, (tx) =>
       tx.booking.findMany({
-        where: { tenantId },
+        where: {
+          tenantId,
+          ...(query.clientId ? { clientId: query.clientId } : {}),
+          ...(query.status ? { status: query.status } : {}),
+          ...(query.from || query.to
+            ? {
+                scheduledAt: {
+                  ...(query.from ? { gte: new Date(query.from) } : {}),
+                  ...(query.to ? { lt: new Date(query.to) } : {}),
+                },
+              }
+            : {}),
+        },
         orderBy: { scheduledAt: 'asc' },
+        ...pageArgs(query),
       }),
     );
   }

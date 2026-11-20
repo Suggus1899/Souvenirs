@@ -1,3 +1,4 @@
+import { ListClientsQueryDto } from './dto/list-clients-query.dto';
 import {
   BadRequestException,
   Injectable,
@@ -16,8 +17,8 @@ export class ClientsService {
     return this.clientsRepository.create(tenantId, dto);
   }
 
-  findAll(tenantId: string) {
-    return this.clientsRepository.findAll(tenantId);
+  findAll(tenantId: string, query: ListClientsQueryDto = {}) {
+    return this.clientsRepository.findAll(tenantId, query);
   }
 
   async findOne(tenantId: string, id: string) {

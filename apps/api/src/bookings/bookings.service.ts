@@ -1,3 +1,4 @@
+import { ListBookingsQueryDto } from './dto/list-bookings-query.dto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ClientsService } from '../clients/clients.service';
 import { ServicesService } from '../services/services.service';
@@ -21,8 +22,8 @@ export class BookingsService {
     return this.bookingsRepository.create(tenantId, createdById, dto);
   }
 
-  findAll(tenantId: string) {
-    return this.bookingsRepository.findAll(tenantId);
+  findAll(tenantId: string, query: ListBookingsQueryDto = {}) {
+    return this.bookingsRepository.findAll(tenantId, query);
   }
 
   async findOne(tenantId: string, id: string) {
