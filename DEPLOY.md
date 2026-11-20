@@ -12,11 +12,12 @@ pnpm install
 
 Crear `apps/api/.env` (ver `apps/api/.env.example`) con valores reales:
 `DATABASE_URL`, `DATABASE_URL_RUNTIME`, `JWT_SECRET`, `JWT_EXPIRES_IN_SECONDS`, `STRIPE_SECRET_KEY`,
-`STRIPE_WEBHOOK_SECRET`, `WEB_APP_URL` (URL pública del web, ej. `https://app.souvenirs.dev`),
+`STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, `WEB_APP_URL` (URL pública del web, ej. `https://app.souvenirs.dev`),
 `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `CORS_ORIGIN` (dominio del web).
 
-Crear `apps/web/.env.local` con `API_URL` apuntando a la URL pública de la API
-(ej. `https://api.souvenirs.dev`).
+Crear `apps/web/.env.local` (ver `apps/web/.env.example`) con `API_URL` apuntando a la URL pública
+de la API (ej. `https://api.souvenirs.dev`) y, si el estudio no está en Venezuela,
+`NEXT_PUBLIC_TIME_ZONE` (por defecto `America/Caracas`). Al ser `NEXT_PUBLIC_*`, se fija en el build.
 
 Crear `apps/mobile/.env` con `EXPO_PUBLIC_API_URL` apuntando a la misma URL pública de la API
 (no se deployea al VPS — se publica en las stores o vía EAS).
@@ -99,6 +100,9 @@ curl -i https://api.souvenirs.dev/auth/login -X POST \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"wrong"}'
 # Esperado: 401 (confirma que la API responde y valida credenciales)
+
+curl -i https://api.souvenirs.dev/health
+# Esperado: 200 {"status":"ok","db":"up",...}
 
 curl -i https://app.souvenirs.dev/login
 # Esperado: 200, HTML del login
