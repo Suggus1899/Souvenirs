@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { ApiError, extractErrorMessage, parseJsonBody } from "./api-error";
-import { SESSION_COOKIE } from "./session";
+import { SESSION_COOKIE, SESSION_EXPIRED_PATH } from "./session";
 
 /** Calls the Nest API directly from a Server Component / Route Handler, attaching the session JWT. */
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -16,6 +17,11 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     },
     cache: "no-store",
   });
+
+  if (res.status === 401) {
+    // Expired or revoked token: clear the cookie and go back to the login screen.
+    redirect(SESSION_EXPIRED_PATH);
+  }
 
   const body = await parseJsonBody(res);
 

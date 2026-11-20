@@ -70,8 +70,16 @@ Luego: `certbot --nginx -d api.souvenirs.dev -d app.souvenirs.dev`.
 ## Stripe
 
 En el dashboard de Stripe, configurar el webhook endpoint a
-`https://api.souvenirs.dev/webhooks/stripe` (eventos `checkout.session.completed`,
-`account.updated`) y copiar el signing secret a `STRIPE_WEBHOOK_SECRET`.
+`https://api.souvenirs.dev/webhooks/stripe` con estos eventos y copiar el signing secret a
+`STRIPE_WEBHOOK_SECRET`:
+
+- `checkout.session.completed` (pagos de facturas y alta de la suscripción Pro)
+- `account.updated` (estado del onboarding de Stripe Connect)
+- `customer.subscription.updated` y `customer.subscription.deleted` (sin estos, un tenant que
+  cancela Pro nunca vuelve al plan gratis)
+
+Como el endpoint recibe eventos de las cuentas conectadas (`account.updated`), en el dashboard
+hay que marcar también "Listen to events on Connected accounts".
 
 ## Deploys siguientes
 

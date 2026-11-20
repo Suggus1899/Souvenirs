@@ -7,6 +7,8 @@ describe('PaymentsService', () => {
     id: 'inv_1',
     totalAmount: new Prisma.Decimal(100),
     status: InvoiceStatus.SENT,
+    currency: 'USD',
+    dueDate: null,
   };
 
   function buildService() {
@@ -20,11 +22,15 @@ describe('PaymentsService', () => {
       findOne: jest.fn().mockResolvedValue(invoice),
       setStatus: jest.fn().mockResolvedValue(undefined),
     };
+    const remindersService = {
+      dismissForInvoice: jest.fn().mockResolvedValue(undefined),
+    };
     const service = new PaymentsService(
       paymentsRepository as never,
       invoicesService as never,
+      remindersService as never,
     );
-    return { service, paymentsRepository, invoicesService };
+    return { service, paymentsRepository, invoicesService, remindersService };
   }
 
   it('rejects manual STRIPE-method payments', async () => {
@@ -36,6 +42,43 @@ describe('PaymentsService', () => {
         method: PaymentMethod.STRIPE,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects a manual payment larger than the remaining balance', async () => {
+    const { service, paymentsRepository } = buildService();
+    paymentsRepository.sumByInvoice.mockResolvedValueOnce(
+      new Prisma.Decimal(80),
+    );
+    await expect(
+      service.create('tenant_1', {
+        invoiceId: 'inv_1',
+        amount: 30,
+        method: PaymentMethod.CASH,
+      }),
+    ).rejects.toThrow('saldo pendiente');
+    expect(paymentsRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('accepts a manual payment that settles the balance exactly and dismisses reminders', async () => {
+    const { service, paymentsRepository, invoicesService, remindersService } =
+      buildService();
+    paymentsRepository.sumByInvoice
+      .mockResolvedValueOnce(new Prisma.Decimal(70))
+      .mockResolvedValueOnce(new Prisma.Decimal(100));
+    await service.create('tenant_1', {
+      invoiceId: 'inv_1',
+      amount: 30,
+      method: PaymentMethod.CASH,
+    });
+    expect(invoicesService.setStatus).toHaveBeenCalledWith(
+      'tenant_1',
+      'inv_1',
+      InvoiceStatus.PAID,
+    );
+    expect(remindersService.dismissForInvoice).toHaveBeenCalledWith(
+      'tenant_1',
+      'inv_1',
+    );
   });
 
   it('records a Stripe payment and marks the invoice PAID once fully covered', async () => {

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-server";
+import { formatAmount, formatMoney, toCents } from "@/lib/money";
 import type { Client, ExchangeRates, Invoice, InvoiceStatus, PaymentMethod } from "@souvenirs/shared";
 
 const STATUS_LABEL: Record<InvoiceStatus, string> = {
@@ -42,7 +43,7 @@ export default async function InvoiceDetailPage({
   ]);
   const client = await apiFetch<Client>(`/clients/${invoice.clientId}`);
   const payments = invoice.payments ?? [];
-  const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+  const paidCents = payments.reduce((sum, p) => sum + toCents(p.amount), 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -62,7 +63,7 @@ export default async function InvoiceDetailPage({
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="font-heading text-2xl">
-              {invoice.totalAmount} {invoice.currency}
+              {formatAmount(invoice.totalAmount, invoice.currency)}
             </CardTitle>
             <BsEquivalent amount={invoice.totalAmount} currency={invoice.currency} rates={rates} />
           </div>
@@ -73,7 +74,7 @@ export default async function InvoiceDetailPage({
             <div>
               <dt className="text-muted-foreground">Pagado</dt>
               <dd className="font-medium">
-                {totalPaid} / {invoice.totalAmount} {invoice.currency}
+                {formatMoney(paidCents, invoice.currency)} / {formatAmount(invoice.totalAmount, invoice.currency)}
               </dd>
             </div>
             <div>
@@ -128,7 +129,7 @@ export default async function InvoiceDetailPage({
                     <TableCell>{new Date(payment.paidAt).toLocaleDateString("es-AR")}</TableCell>
                     <TableCell>{METHOD_LABEL[payment.method]}</TableCell>
                     <TableCell>
-                      {payment.amount} {invoice.currency}
+                      {formatAmount(payment.amount, invoice.currency)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{payment.notes ?? "—"}</TableCell>
                   </TableRow>

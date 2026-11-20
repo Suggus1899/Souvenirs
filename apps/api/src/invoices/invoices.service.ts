@@ -2,8 +2,10 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InvoiceStatus, Plan } from '@prisma/client';
 import { BookingsService } from '../bookings/bookings.service';
 import { ClientsService } from '../clients/clients.service';
@@ -12,12 +14,21 @@ import { StripeService } from '../stripe/stripe.service';
 import { TenantsService } from '../tenants/tenants.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import {
+  canCancel,
+  canEdit,
+  canSend,
+  isOpenForPayment,
+  overdueCutoff,
+} from './invoice-status';
 import { InvoicesRepository } from './invoices.repository';
 
 const FREE_PLAN_MONTHLY_INVOICE_LIMIT = 5;
 
 @Injectable()
 export class InvoicesService {
+  private readonly logger = new Logger(InvoicesService.name);
+
   constructor(
     private readonly invoicesRepository: InvoicesRepository,
     private readonly clientsService: ClientsService,
@@ -67,23 +78,27 @@ export class InvoicesService {
   async findOne(tenantId: string, id: string) {
     const invoice = await this.invoicesRepository.findOne(tenantId, id);
     if (!invoice) {
-      throw new NotFoundException('Invoice not found');
+      throw new NotFoundException('Factura no encontrada');
     }
     return invoice;
   }
 
   async update(tenantId: string, id: string, dto: UpdateInvoiceDto) {
     const invoice = await this.findOne(tenantId, id);
-    if (invoice.status !== InvoiceStatus.DRAFT) {
-      throw new BadRequestException('Only draft invoices can be edited');
+    if (!canEdit(invoice.status)) {
+      throw new BadRequestException(
+        'Solo se pueden editar facturas en borrador',
+      );
     }
     return this.invoicesRepository.update(tenantId, id, dto);
   }
 
   async send(tenantId: string, id: string) {
     const invoice = await this.findOne(tenantId, id);
-    if (invoice.status !== InvoiceStatus.DRAFT) {
-      throw new BadRequestException('Only draft invoices can be sent');
+    if (!canSend(invoice.status)) {
+      throw new BadRequestException(
+        'Solo se pueden enviar facturas en borrador',
+      );
     }
     return this.invoicesRepository.updateStatus(
       tenantId,
@@ -94,14 +109,26 @@ export class InvoicesService {
 
   async cancel(tenantId: string, id: string) {
     const invoice = await this.findOne(tenantId, id);
-    if (invoice.status === InvoiceStatus.PAID) {
-      throw new BadRequestException('A paid invoice cannot be cancelled');
+    if (!canCancel(invoice.status)) {
+      throw new BadRequestException('Esta factura ya no se puede cancelar');
     }
-    return this.invoicesRepository.updateStatus(
+    const cancelled = await this.invoicesRepository.updateStatus(
       tenantId,
       id,
       InvoiceStatus.CANCELLED,
     );
+    await this.remindersService.dismissForInvoice(tenantId, id);
+    return cancelled;
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async markOverdue() {
+    const { count } = await this.invoicesRepository.markOverdue(
+      overdueCutoff(new Date()),
+    );
+    if (count > 0) {
+      this.logger.log(`Marked ${count} invoice(s) as overdue`);
+    }
   }
 
   async setStatus(tenantId: string, id: string, status: InvoiceStatus) {
@@ -111,17 +138,14 @@ export class InvoicesService {
 
   async createCheckoutSession(tenantId: string, id: string) {
     const invoice = await this.findOne(tenantId, id);
-    if (
-      invoice.status === InvoiceStatus.PAID ||
-      invoice.status === InvoiceStatus.CANCELLED
-    ) {
-      throw new BadRequestException('This invoice is not open for payment');
+    if (!isOpenForPayment(invoice.status)) {
+      throw new BadRequestException('Esta factura no admite pagos');
     }
 
     const tenant = await this.tenantsService.findOne(tenantId);
     if (!tenant.stripeAccountId || !tenant.stripeOnboarded) {
       throw new BadRequestException(
-        'Complete Stripe onboarding before accepting online payments',
+        'Completa la conexión con Stripe antes de cobrar online',
       );
     }
 

@@ -7,7 +7,10 @@ describe('RemindersService', () => {
       create: jest.fn().mockResolvedValue({ id: 'rem_1' }),
       findAll: jest.fn(),
       findDuePending: jest.fn().mockResolvedValue([]),
-      markSent: jest.fn().mockResolvedValue(undefined),
+      findClosedInvoiceIds: jest.fn().mockResolvedValue(new Set()),
+      claim: jest.fn().mockResolvedValue(true),
+      release: jest.fn().mockResolvedValue(undefined),
+      dismissPendingFor: jest.fn().mockResolvedValue({ count: 0 }),
     };
     const usersRepository = {
       findOwnersWithPushTokens: jest.fn().mockResolvedValue([
@@ -77,7 +80,7 @@ describe('RemindersService', () => {
       'Payment reminder',
       'Payment due',
     );
-    expect(remindersRepository.markSent).toHaveBeenCalledWith('rem_1');
+    expect(remindersRepository.claim).toHaveBeenCalledWith('rem_1', 'SENT');
   });
 
   it('dispatches due email reminders to each owner and marks them sent', async () => {
@@ -98,7 +101,7 @@ describe('RemindersService', () => {
       'Payment reminder',
       'Payment due',
     );
-    expect(remindersRepository.markSent).toHaveBeenCalledWith('rem_2');
+    expect(remindersRepository.claim).toHaveBeenCalledWith('rem_2', 'SENT');
   });
 
   it('fetches owners once per tenant, not once per reminder', async () => {
@@ -127,10 +130,54 @@ describe('RemindersService', () => {
     await service.dispatchDue();
 
     expect(usersRepository.findOwnersWithPushTokens).toHaveBeenCalledTimes(2);
-    expect(remindersRepository.markSent).toHaveBeenCalledTimes(3);
+    expect(remindersRepository.claim).toHaveBeenCalledTimes(3);
   });
 
-  it('leaves a reminder PENDING for the next tick if dispatch fails', async () => {
+  it('skips a reminder another instance already claimed', async () => {
+    const { service, remindersRepository, pushService } = buildService();
+    remindersRepository.findDuePending.mockResolvedValueOnce([
+      {
+        id: 'rem_9',
+        tenantId: 'tenant_1',
+        relatedType: ReminderRelatedType.INVOICE,
+        relatedId: 'inv_1',
+        channel: ReminderChannel.PUSH,
+        message: 'Payment due',
+      },
+    ]);
+    remindersRepository.claim.mockResolvedValueOnce(false);
+
+    await service.dispatchDue();
+
+    expect(pushService.sendToTokens).not.toHaveBeenCalled();
+  });
+
+  it('dismisses instead of sending reminders of invoices already paid or cancelled', async () => {
+    const { service, remindersRepository, pushService } = buildService();
+    remindersRepository.findDuePending.mockResolvedValueOnce([
+      {
+        id: 'rem_7',
+        tenantId: 'tenant_1',
+        relatedType: ReminderRelatedType.INVOICE,
+        relatedId: 'inv_paid',
+        channel: ReminderChannel.PUSH,
+        message: 'Payment due',
+      },
+    ]);
+    remindersRepository.findClosedInvoiceIds.mockResolvedValueOnce(
+      new Set(['inv_paid']),
+    );
+
+    await service.dispatchDue();
+
+    expect(remindersRepository.claim).toHaveBeenCalledWith(
+      'rem_7',
+      'DISMISSED',
+    );
+    expect(pushService.sendToTokens).not.toHaveBeenCalled();
+  });
+
+  it('puts a reminder back to PENDING for the next tick if dispatch fails', async () => {
     const { service, remindersRepository, pushService } = buildService();
     remindersRepository.findDuePending.mockResolvedValueOnce([
       {
@@ -146,6 +193,6 @@ describe('RemindersService', () => {
 
     await service.dispatchDue();
 
-    expect(remindersRepository.markSent).not.toHaveBeenCalled();
+    expect(remindersRepository.release).toHaveBeenCalledWith('rem_3');
   });
 });

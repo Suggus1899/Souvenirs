@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { ReminderChannel, ReminderRelatedType } from '@prisma/client';
+import {
+  ReminderChannel,
+  ReminderRelatedType,
+  ReminderStatus,
+} from '@prisma/client';
 import { EmailService } from '../notifications/email.service';
 import { PushService } from '../notifications/push.service';
 import { UsersRepository } from '../users/users.repository';
@@ -46,14 +50,36 @@ export class RemindersService {
     ]);
   }
 
+  dismissForInvoice(tenantId: string, invoiceId: string) {
+    return this.remindersRepository.dismissPendingFor(
+      tenantId,
+      ReminderRelatedType.INVOICE,
+      invoiceId,
+    );
+  }
+
   @Cron(CronExpression.EVERY_5_MINUTES)
   async dispatchDue() {
     const dueReminders = await this.remindersRepository.findDuePending(
       new Date(),
     );
+    // Safety net for reminders whose invoice was closed without dismissing them.
+    const closedInvoiceIds =
+      await this.remindersRepository.findClosedInvoiceIds(
+        dueReminders
+          .filter((r) => r.relatedType === ReminderRelatedType.INVOICE)
+          .map((r) => r.relatedId),
+      );
 
     const remindersByTenant = new Map<string, typeof dueReminders>();
     for (const reminder of dueReminders) {
+      if (closedInvoiceIds.has(reminder.relatedId)) {
+        await this.remindersRepository.claim(
+          reminder.id,
+          ReminderStatus.DISMISSED,
+        );
+        continue;
+      }
       const tenantReminders = remindersByTenant.get(reminder.tenantId) ?? [];
       tenantReminders.push(reminder);
       remindersByTenant.set(reminder.tenantId, tenantReminders);
@@ -63,14 +89,19 @@ export class RemindersService {
       const owners =
         await this.usersRepository.findOwnersWithPushTokens(tenantId);
       for (const reminder of reminders) {
+        const claimed = await this.remindersRepository.claim(
+          reminder.id,
+          ReminderStatus.SENT,
+        );
+        if (!claimed) continue; // another instance already took it
         try {
           await this.dispatchOne(owners, reminder.channel, reminder.message);
-          await this.remindersRepository.markSent(reminder.id);
         } catch (error) {
           this.logger.error(
             `Failed to dispatch reminder ${reminder.id}`,
             error,
           );
+          await this.remindersRepository.release(reminder.id);
         }
       }
     }

@@ -1,12 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { InvoiceStatus } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 
 @Injectable()
 export class InvoicesRepository {
-  constructor(private readonly tenantDb: TenantPrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tenantDb: TenantPrismaService,
+  ) {}
+
+  /** System-level (cron): flips every tenant's open invoices past their due date to OVERDUE. */
+  markOverdue(cutoff: Date) {
+    return this.prisma.invoice.updateMany({
+      where: {
+        status: { in: [InvoiceStatus.SENT, InvoiceStatus.PARTIAL] },
+        dueDate: { lt: cutoff },
+      },
+      data: { status: InvoiceStatus.OVERDUE },
+    });
+  }
 
   /**
    * `monthlyLimit`, when given, checks and creates in the same transaction so a
