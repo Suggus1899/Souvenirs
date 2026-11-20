@@ -1,17 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import {
+  InvoiceStatus,
   ReminderChannel,
+  ReminderRecipient,
   ReminderRelatedType,
   ReminderStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 
-interface CreateReminderInput {
+export interface CreateReminderInput {
   relatedType: ReminderRelatedType;
   relatedId: string;
   remindAt: Date;
   channel: ReminderChannel;
+  recipient?: ReminderRecipient;
+  recipientEmail?: string;
   message: string;
 }
 
@@ -22,9 +26,12 @@ export class RemindersRepository {
     private readonly tenantDb: TenantPrismaService,
   ) {}
 
-  create(tenantId: string, input: CreateReminderInput) {
+  createMany(tenantId: string, inputs: CreateReminderInput[]) {
+    if (inputs.length === 0) return Promise.resolve({ count: 0 });
     return this.tenantDb.run(tenantId, (tx) =>
-      tx.reminder.create({ data: { ...input, tenantId } }),
+      tx.reminder.createMany({
+        data: inputs.map((input) => ({ ...input, tenantId })),
+      }),
     );
   }
 
@@ -37,6 +44,25 @@ export class RemindersRepository {
     );
   }
 
+  /** Stops every still-pending reminder about one booking/invoice (it was paid, cancelled, rescheduled...). */
+  dismissPendingFor(
+    tenantId: string,
+    relatedType: ReminderRelatedType,
+    relatedId: string,
+  ) {
+    return this.tenantDb.run(tenantId, (tx) =>
+      tx.reminder.updateMany({
+        where: {
+          tenantId,
+          relatedType,
+          relatedId,
+          status: ReminderStatus.PENDING,
+        },
+        data: { status: ReminderStatus.DISMISSED },
+      }),
+    );
+  }
+
   /** System-level: scans reminders across every tenant, so it stays on the owner connection (no single tenant context applies). */
   findDuePending(now: Date) {
     return this.prisma.reminder.findMany({
@@ -44,10 +70,37 @@ export class RemindersRepository {
     });
   }
 
-  markSent(id: string) {
+  /** System-level: ids of the given invoices that no longer need a payment reminder. */
+  async findClosedInvoiceIds(invoiceIds: string[]): Promise<Set<string>> {
+    if (invoiceIds.length === 0) return new Set();
+    const closed = await this.prisma.invoice.findMany({
+      where: {
+        id: { in: invoiceIds },
+        status: { in: [InvoiceStatus.PAID, InvoiceStatus.CANCELLED] },
+      },
+      select: { id: true },
+    });
+    return new Set(closed.map((i) => i.id));
+  }
+
+  /**
+   * Atomically moves a reminder out of PENDING. Only the caller whose update
+   * matched the row "owns" it, so two API instances running the cron at once
+   * can never both send the same reminder.
+   */
+  async claim(id: string, status: ReminderStatus): Promise<boolean> {
+    const { count } = await this.prisma.reminder.updateMany({
+      where: { id, status: ReminderStatus.PENDING },
+      data: { status },
+    });
+    return count === 1;
+  }
+
+  /** Puts a claimed reminder back in the queue after a failed send, so the next run retries it. */
+  release(id: string) {
     return this.prisma.reminder.update({
       where: { id },
-      data: { status: ReminderStatus.SENT },
+      data: { status: ReminderStatus.PENDING },
     });
   }
 }

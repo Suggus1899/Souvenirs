@@ -73,7 +73,7 @@ export function ServiceDialog({ service }: { service?: Service }) {
         <DialogHeader>
           <DialogTitle>{isEditing ? "Editar servicio" : "Nuevo servicio"}</DialogTitle>
           <DialogDescription>
-            Definí el precio base y la duración estándar del servicio.
+            Define el precio base y la duración estándar del servicio.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

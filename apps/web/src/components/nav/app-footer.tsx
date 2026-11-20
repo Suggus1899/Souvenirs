@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/brand/logo";
 
 export function AppFooter({ variant = "compact" }: { variant?: "compact" | "marketing" }) {
   const year = new Date().getFullYear();
@@ -15,7 +16,7 @@ export function AppFooter({ variant = "compact" }: { variant?: "compact" | "mark
     <footer className="border-t border-border px-4 py-12 md:px-8">
       <div className="mx-auto flex max-w-5xl flex-col gap-8 sm:flex-row sm:justify-between">
         <div className="flex flex-col gap-2">
-          <span className="font-heading text-lg">Souvenirs</span>
+          <Logo className="text-lg" markClassName="size-6" />
           <p className="max-w-xs text-sm text-muted-foreground">
             Gestión de clientes y pagos para fotógrafos.
           </p>
@@ -24,7 +25,7 @@ export function AppFooter({ variant = "compact" }: { variant?: "compact" | "mark
           <div className="flex flex-col gap-2 text-sm">
             <span className="font-medium">Producto</span>
             <Link href="/register" className="text-muted-foreground hover:text-foreground">
-              Creá tu estudio
+              Crea tu estudio
             </Link>
             <Link href="/login" className="text-muted-foreground hover:text-foreground">
               Ingresar

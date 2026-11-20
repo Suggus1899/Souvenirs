@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: souvenirs
+          POSTGRES_PASSWORD: souvenirs
+          POSTGRES_DB: souvenirs
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U souvenirs"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://souvenirs:souvenirs@localhost:5432/souvenirs?schema=public
+      DATABASE_URL_RUNTIME: postgresql://app_runtime:runtime@localhost:5432/souvenirs?schema=public
+      JWT_SECRET: ci-secret
+      JWT_EXPIRES_IN_SECONDS: "86400"
+      STRIPE_SECRET_KEY: sk_test_ci
+      STRIPE_WEBHOOK_SECRET: whsec_ci
+      STRIPE_PRO_PRICE_ID: price_ci
+      WEB_APP_URL: http://localhost:3001
+      RESEND_API_KEY: re_ci
+      RESEND_FROM_EMAIL: ci@example.com
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm prisma:generate
+      - run: pnpm exec eslint "{src,test}/**/*.ts"
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm test
+      - name: Set up RLS role and migrate
+        run: |
+          psql "${DATABASE_URL%%\?*}" -v ON_ERROR_STOP=1 -v runtime_password=runtime -f prisma/rls-setup.sql
+          pnpm prisma:deploy
+      - run: pnpm test:e2e
+      - run: pnpm build
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      API_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm lint
+      - run: pnpm exec next typegen
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm build
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm lint
+      - run: pnpm exec tsc --noEmit

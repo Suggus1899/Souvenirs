@@ -1,7 +1,6 @@
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { extractErrorMessage, parseJsonBody } from "@/lib/api-error";
-import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/session";
+import { setSessionCookie } from "@/lib/session-server";
 
 export async function POST(req: NextRequest) {
   const payload = await req.text();
@@ -23,14 +22,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { accessToken, user } = body as { accessToken: string; user: unknown };
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: SESSION_MAX_AGE_SECONDS,
-  });
+  await setSessionCookie(accessToken);
 
   return NextResponse.json({ user });
 }

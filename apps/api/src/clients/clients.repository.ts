@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { pageArgs } from '../common/pagination-query.dto';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
+import { ListClientsQueryDto } from './dto/list-clients-query.dto';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 
@@ -13,11 +15,24 @@ export class ClientsRepository {
     );
   }
 
-  findAll(tenantId: string) {
+  findAll(tenantId: string, query: ListClientsQueryDto = {}) {
+    const search = query.search?.trim();
     return this.tenantDb.run(tenantId, (tx) =>
       tx.client.findMany({
-        where: { tenantId },
+        where: {
+          tenantId,
+          ...(search
+            ? {
+                OR: [
+                  { name: { contains: search, mode: 'insensitive' } },
+                  { email: { contains: search, mode: 'insensitive' } },
+                  { phone: { contains: search } },
+                ],
+              }
+            : {}),
+        },
         orderBy: { createdAt: 'desc' },
+        ...pageArgs(query),
       }),
     );
   }

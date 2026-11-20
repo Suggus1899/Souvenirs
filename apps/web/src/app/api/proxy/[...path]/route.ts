@@ -20,11 +20,15 @@ async function handler(req: NextRequest, ctx: { params: Promise<{ path: string[]
     cache: "no-store",
   });
 
-  const text = await res.text();
-  return new NextResponse(text, {
-    status: res.status,
-    headers: { "Content-Type": res.headers.get("Content-Type") ?? "application/json" },
+  const headers = new Headers({
+    "Content-Type": res.headers.get("Content-Type") ?? "application/json",
   });
+  const disposition = res.headers.get("Content-Disposition");
+  if (disposition) headers.set("Content-Disposition", disposition); // CSV downloads
+
+  // A 204/304 response must not carry a body, or the Response constructor throws.
+  const body = res.status === 204 || res.status === 304 ? null : await res.arrayBuffer();
+  return new NextResponse(body, { status: res.status, headers });
 }
 
 export {

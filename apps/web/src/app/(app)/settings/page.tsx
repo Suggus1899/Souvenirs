@@ -1,17 +1,50 @@
 import { CheckCircleIcon, ExclamationCircleIcon } from "@heroicons/react/24/outline";
 import { BillingButton } from "@/components/settings/billing-button";
+import { ReminderSettingsForm } from "@/components/settings/reminder-settings-form";
+import { SettingsNav } from "@/components/settings/settings-nav";
 import { StripeOnboardingButton } from "@/components/settings/stripe-onboarding-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-server";
-import type { Tenant } from "@souvenirs/shared";
+import type { Tenant, UserProfile } from "@souvenirs/shared";
 
-export default async function SettingsPage() {
-  const tenant = await apiFetch<Tenant>("/tenants/me");
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ stripe?: string }>;
+}) {
+  const [tenant, me, { stripe }] = await Promise.all([
+    apiFetch<Tenant>("/tenants/me"),
+    apiFetch<UserProfile>("/users/me"),
+    searchParams,
+  ]);
+  const isOwner = me.role === "OWNER";
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-heading text-3xl">Configuración</h1>
+      <SettingsNav current="/settings" />
+      {stripe === "returned" && (
+        <p role="status" className="rounded-md bg-muted px-4 py-2 text-sm">
+          Volviste de Stripe. Si completaste los datos, la conexión se confirma en unos segundos.
+        </p>
+      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recordatorios de pago</CardTitle>
+          <CardDescription>
+            Se programan al enviar una factura con fecha de vencimiento. Tú recibes un push; tu
+            cliente, un email con el link para pagar.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ReminderSettingsForm
+            offsets={tenant.reminderOffsetsDays}
+            clientRemindersEnabled={tenant.clientRemindersEnabled}
+            canEdit={isOwner}
+          />
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -22,19 +55,23 @@ export default async function SettingsPage() {
           </div>
           <CardDescription>
             {tenant.plan === "PRO"
-              ? "Facturas ilimitadas y cobro online con Stripe."
-              : "Hasta 5 facturas por mes. Actualizá a Pro para facturar sin límite."}
+              ? "Facturas ilimitadas. Puedes cancelar cuando quieras desde el portal de facturación."
+              : "Hasta 5 facturas por mes. Actualiza a Pro para facturar sin límite."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <BillingButton plan={tenant.plan} />
+          {isOwner ? (
+            <BillingButton plan={tenant.plan} />
+          ) : (
+            <p className="text-xs text-muted-foreground">Solo el dueño del estudio gestiona el plan.</p>
+          )}
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
           <CardTitle>Cobros con Stripe</CardTitle>
           <CardDescription>
-            Conectá tu cuenta de Stripe para poder generar links de pago y cobrar online a tus
+            Conecta tu cuenta de Stripe para poder generar links de pago y cobrar online a tus
             clientes.
           </CardDescription>
         </CardHeader>
@@ -57,7 +94,7 @@ export default async function SettingsPage() {
             )}
           </div>
           <div>
-            <StripeOnboardingButton alreadyConnected={Boolean(tenant.stripeAccountId)} />
+            {isOwner && <StripeOnboardingButton alreadyConnected={Boolean(tenant.stripeAccountId)} />}
           </div>
         </CardContent>
       </Card>

@@ -12,11 +12,12 @@ pnpm install
 
 Crear `apps/api/.env` (ver `apps/api/.env.example`) con valores reales:
 `DATABASE_URL`, `DATABASE_URL_RUNTIME`, `JWT_SECRET`, `JWT_EXPIRES_IN_SECONDS`, `STRIPE_SECRET_KEY`,
-`STRIPE_WEBHOOK_SECRET`, `WEB_APP_URL` (URL pública del web, ej. `https://app.souvenirs.dev`),
+`STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, `WEB_APP_URL` (URL pública del web, ej. `https://app.souvenirs.dev`),
 `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `CORS_ORIGIN` (dominio del web).
 
-Crear `apps/web/.env.local` con `API_URL` apuntando a la URL pública de la API
-(ej. `https://api.souvenirs.dev`).
+Crear `apps/web/.env.local` (ver `apps/web/.env.example`) con `API_URL` apuntando a la URL pública
+de la API (ej. `https://api.souvenirs.dev`) y, si el estudio no está en Venezuela,
+`NEXT_PUBLIC_TIME_ZONE` (por defecto `America/Caracas`). Al ser `NEXT_PUBLIC_*`, se fija en el build.
 
 Crear `apps/mobile/.env` con `EXPO_PUBLIC_API_URL` apuntando a la misma URL pública de la API
 (no se deployea al VPS — se publica en las stores o vía EAS).
@@ -25,9 +26,12 @@ Crear `apps/mobile/.env` con `EXPO_PUBLIC_API_URL` apuntando a la misma URL púb
 (crea el rol `app_runtime` sin privilegios de owner, usado por `DATABASE_URL_RUNTIME`):
 
 ```bash
-psql "$DATABASE_URL" -v runtime_password='<password-fuerte-para-app_runtime>' \
+psql "${DATABASE_URL%%\?*}" -v runtime_password='<password-fuerte-para-app_runtime>' \
   -f apps/api/prisma/rls-setup.sql
 ```
+
+`${DATABASE_URL%%\?*}` quita los parámetros `?schema=…&connection_limit=…`, que son propios de Prisma:
+psql rechaza la URL con ellos (`invalid URI query parameter`).
 
 ```bash
 # Migraciones — NUNCA usar prisma:migrate (migrate dev) en producción
@@ -70,8 +74,16 @@ Luego: `certbot --nginx -d api.souvenirs.dev -d app.souvenirs.dev`.
 ## Stripe
 
 En el dashboard de Stripe, configurar el webhook endpoint a
-`https://api.souvenirs.dev/webhooks/stripe` (eventos `checkout.session.completed`,
-`account.updated`) y copiar el signing secret a `STRIPE_WEBHOOK_SECRET`.
+`https://api.souvenirs.dev/webhooks/stripe` con estos eventos y copiar el signing secret a
+`STRIPE_WEBHOOK_SECRET`:
+
+- `checkout.session.completed` (pagos de facturas y alta de la suscripción Pro)
+- `account.updated` (estado del onboarding de Stripe Connect)
+- `customer.subscription.updated` y `customer.subscription.deleted` (sin estos, un tenant que
+  cancela Pro nunca vuelve al plan gratis)
+
+Como el endpoint recibe eventos de las cuentas conectadas (`account.updated`), en el dashboard
+hay que marcar también "Listen to events on Connected accounts".
 
 ## Deploys siguientes
 
@@ -91,6 +103,9 @@ curl -i https://api.souvenirs.dev/auth/login -X POST \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"wrong"}'
 # Esperado: 401 (confirma que la API responde y valida credenciales)
+
+curl -i https://api.souvenirs.dev/health
+# Esperado: 200 {"status":"ok","db":"up",...}
 
 curl -i https://app.souvenirs.dev/login
 # Esperado: 200, HTML del login

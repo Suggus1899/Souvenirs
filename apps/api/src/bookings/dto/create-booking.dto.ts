@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsInt,
   IsOptional,
@@ -33,4 +34,9 @@ export class CreateBookingDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  /** Skip the overlap check (e.g. a second shooter covers the other session). */
+  @IsOptional()
+  @IsBoolean()
+  allowOverlap?: boolean;
 }

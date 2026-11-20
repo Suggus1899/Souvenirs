@@ -1,9 +1,10 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Role } from '@prisma/client';
 import { CurrentTenant } from '../auth/decorators/current-tenant.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { TenantsService } from './tenants.service';
 
 @Controller('tenants')
@@ -14,6 +15,13 @@ export class TenantsController {
   @Get('me')
   getMe(@CurrentTenant() tenantId: string) {
     return this.tenantsService.findOne(tenantId);
+  }
+
+  @Patch('me')
+  @Roles(Role.OWNER)
+  @UseGuards(RolesGuard)
+  updateMe(@CurrentTenant() tenantId: string, @Body() dto: UpdateTenantDto) {
+    return this.tenantsService.updateSettings(tenantId, dto);
   }
 
   @Post('me/stripe/onboarding-link')

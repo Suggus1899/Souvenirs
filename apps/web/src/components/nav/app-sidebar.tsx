@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS } from "./nav-items";
+import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
 export function AppSidebar() {
@@ -11,7 +12,9 @@ export function AppSidebar() {
   return (
     <aside className="hidden w-60 shrink-0 border-r border-border bg-sidebar md:flex md:flex-col">
       <div className="flex h-16 items-center px-6">
-        <span className="font-heading text-xl text-sidebar-foreground">Souvenirs</span>
+        <Link href="/dashboard" aria-label="Souvenirs, ir al inicio">
+          <Logo className="text-sidebar-foreground" />
+        </Link>
       </div>
       <nav className="flex flex-col gap-1 px-3">
         {NAV_ITEMS.map((item) => {

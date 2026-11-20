@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { NAV_ITEMS } from "./nav-items";
+import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,9 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent side="left" className="w-64">
         <SheetHeader>
-          <SheetTitle className="font-heading text-xl">Souvenirs</SheetTitle>
+          <SheetTitle>
+            <Logo />
+          </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-1 px-3">
           {NAV_ITEMS.map((item) => {

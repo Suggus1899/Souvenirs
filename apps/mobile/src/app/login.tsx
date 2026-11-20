@@ -35,7 +35,7 @@ export default function LoginScreen() {
             Souvenirs
           </Text>
           <Text variant="bodyMedium" style={styles.subtitle}>
-            Ingresá a tu cuenta para ver tus reservas y facturas.
+            Ingresa a tu cuenta para ver tus reservas y facturas.
           </Text>
           <TextInput
             label="Email"

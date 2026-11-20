@@ -1,6 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InvoiceStatus, PaymentMethod, Prisma } from '@prisma/client';
+import {
+  isOpenForPayment,
+  statusAfterPayment,
+} from '../invoices/invoice-status';
 import { InvoicesService } from '../invoices/invoices.service';
+import { RemindersService } from '../reminders/reminders.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { CreatePaymentInput, PaymentsRepository } from './payments.repository';
 
@@ -11,19 +16,31 @@ export class PaymentsService {
   constructor(
     private readonly paymentsRepository: PaymentsRepository,
     private readonly invoicesService: InvoicesService,
+    private readonly remindersService: RemindersService,
   ) {}
 
   async create(tenantId: string, dto: CreatePaymentDto) {
     if (dto.method === PaymentMethod.STRIPE) {
       throw new BadRequestException(
-        'Stripe payments are recorded automatically via webhook',
+        'Los pagos con Stripe se registran automáticamente',
       );
     }
 
     const invoice = await this.invoicesService.findOne(tenantId, dto.invoiceId);
-    if (invoice.status === InvoiceStatus.CANCELLED) {
+    if (!isOpenForPayment(invoice.status)) {
+      throw new BadRequestException('Esta factura no admite pagos');
+    }
+
+    // Manual payments can't exceed what is still owed. Stripe payments skip this
+    // check on purpose: that money was already charged, so it must be recorded.
+    const alreadyPaid = await this.paymentsRepository.sumByInvoice(
+      tenantId,
+      invoice.id,
+    );
+    const remaining = invoice.totalAmount.minus(alreadyPaid);
+    if (new Prisma.Decimal(dto.amount).gt(remaining)) {
       throw new BadRequestException(
-        'Cannot register a payment on a cancelled invoice',
+        `El monto supera el saldo pendiente (${remaining.toFixed(2)} ${invoice.currency})`,
       );
     }
 
@@ -89,10 +106,11 @@ export class PaymentsService {
       tenantId,
       input.invoiceId,
     );
-    const newStatus = totalPaid.gte(invoice.totalAmount)
-      ? InvoiceStatus.PAID
-      : InvoiceStatus.PARTIAL;
+    const newStatus = statusAfterPayment(invoice, totalPaid);
     await this.invoicesService.setStatus(tenantId, input.invoiceId, newStatus);
+    if (newStatus === InvoiceStatus.PAID) {
+      await this.remindersService.dismissForInvoice(tenantId, input.invoiceId);
+    }
     return payment;
   }
 }

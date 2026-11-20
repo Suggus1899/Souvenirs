@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Plan, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
+import { UpdateTenantDto } from './dto/update-tenant.dto';
 
 interface CreateWithOwnerInput {
   tenantName: string;
@@ -51,6 +52,24 @@ export class TenantsRepository {
   /** Called from the Stripe webhook, before any tenant context is known — stays on the owner connection. */
   findByStripeAccountId(stripeAccountId: string) {
     return this.prisma.tenant.findFirst({ where: { stripeAccountId } });
+  }
+
+  updateSettings(tenantId: string, data: UpdateTenantDto) {
+    return this.tenantDb.run(tenantId, (tx) =>
+      tx.tenant.update({
+        where: { id: tenantId },
+        data: {
+          ...data,
+          ...(data.reminderOffsetsDays
+            ? {
+                reminderOffsetsDays: [...data.reminderOffsetsDays].sort(
+                  (a, b) => a - b,
+                ),
+              }
+            : {}),
+        },
+      }),
+    );
   }
 
   setStripeAccountId(tenantId: string, stripeAccountId: string) {

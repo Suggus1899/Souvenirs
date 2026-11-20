@@ -18,9 +18,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       useFactory: (configService: ConfigService) => ({
         secret: configService.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: configService.get<number>(
-            'JWT_EXPIRES_IN_SECONDS',
-            604800,
+          // Env values arrive as strings, and jsonwebtoken reads a unitless string
+          // as milliseconds ("86400" = 86 s) — coerce to a number of seconds.
+          expiresIn: Number(
+            configService.get<string>('JWT_EXPIRES_IN_SECONDS', '86400'),
           ),
         },
       }),

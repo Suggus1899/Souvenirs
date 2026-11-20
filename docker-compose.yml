@@ -1,0 +1,25 @@
+# Local development database: `docker compose up -d`, then run migrations from apps/api.
+# Matches apps/api/.env.example (owner role `souvenirs`, RLS runtime role `app_runtime`).
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: souvenirs
+      POSTGRES_PASSWORD: souvenirs
+      POSTGRES_DB: souvenirs
+      APP_RUNTIME_PASSWORD: runtime
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./apps/api/prisma/rls-setup.sql:/rls-setup.sql:ro
+      - ./docker/postgres-init.sh:/docker-entrypoint-initdb.d/10-rls-setup.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U souvenirs -d souvenirs"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

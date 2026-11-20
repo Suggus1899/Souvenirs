@@ -3,6 +3,7 @@ import { ServiceDialog } from "@/components/services/service-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-server";
+import { formatAmount } from "@/lib/money";
 import type { Service } from "@souvenirs/shared";
 
 export default async function ServicesPage() {
@@ -23,24 +24,30 @@ export default async function ServicesPage() {
         <CardContent>
           {services.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Todavía no cargaste ningún servicio.
+              Todavía no has agregado ningún servicio.
             </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
-                  <TableHead>Precio base</TableHead>
-                  <TableHead>Duración</TableHead>
+                  <TableHead className="hidden sm:table-cell">Precio base</TableHead>
+                  <TableHead className="hidden md:table-cell">Duración</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {services.map((service) => (
                   <TableRow key={service.id}>
-                    <TableCell className="font-medium">{service.name}</TableCell>
-                    <TableCell className="text-muted-foreground">${service.basePrice}</TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="font-medium whitespace-normal">
+                      {service.name}
+                      <span className="block text-xs font-normal text-muted-foreground md:hidden">
+                        <span className="sm:hidden">{formatAmount(service.basePrice, "USD")} · </span>
+                        {service.durationMinutes} min
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden text-muted-foreground sm:table-cell">{formatAmount(service.basePrice, "USD")}</TableCell>
+                    <TableCell className="hidden text-muted-foreground md:table-cell">
                       {service.durationMinutes} min
                     </TableCell>
                     <TableCell className="flex justify-end gap-1">

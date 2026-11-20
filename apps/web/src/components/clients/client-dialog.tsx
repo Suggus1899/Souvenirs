@@ -74,8 +74,8 @@ export function ClientDialog({ client }: { client?: Client }) {
           <DialogTitle>{isEditing ? "Editar cliente" : "Nuevo cliente"}</DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Actualizá los datos de contacto del cliente."
-              : "Cargá los datos de contacto del cliente."}
+              ? "Actualiza los datos de contacto del cliente."
+              : "Carga los datos de contacto del cliente."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

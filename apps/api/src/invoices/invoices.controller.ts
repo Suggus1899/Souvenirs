@@ -1,3 +1,4 @@
+import { ListInvoicesQueryDto } from './dto/list-invoices-query.dto';
 import {
   Body,
   Controller,
@@ -5,9 +6,12 @@ import {
   Param,
   Patch,
   Post,
+  Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import type { Response } from 'express';
 import { CurrentTenant } from '../auth/decorators/current-tenant.decorator';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
@@ -24,8 +28,25 @@ export class InvoicesController {
   }
 
   @Get()
-  findAll(@CurrentTenant() tenantId: string) {
-    return this.invoicesService.findAll(tenantId);
+  findAll(
+    @CurrentTenant() tenantId: string,
+    @Query() query: ListInvoicesQueryDto,
+  ) {
+    return this.invoicesService.findAll(tenantId, query);
+  }
+
+  /** Declared before :id so "export" isn't read as an invoice id. */
+  @Get('export')
+  async export(
+    @CurrentTenant() tenantId: string,
+    @Query() query: ListInvoicesQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const csv = await this.invoicesService.exportCsv(tenantId, query);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="facturas.csv"');
+    // BOM so Excel opens the UTF-8 accents correctly.
+    return `\uFEFF${csv}`;
   }
 
   @Get(':id')

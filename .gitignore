@@ -1,15 +1,57 @@
+# ── Dependencias ─────────────────────────────────────────────
 node_modules/
+.pnpm-store/
+.pnp
+.pnp.*
+
+# ── Builds y artefactos ──────────────────────────────────────
 dist/
 build/
+out/
+.next/
+web-build/
+.expo/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+expo-env.d.ts
+
+# ── Variables de entorno (las plantillas sí se versionan) ────
 .env
 .env.*
 !.env.example
-*.log
-.DS_Store
-coverage/
-# Local environment files
 !.env.*.example
-!.env.sample
-!.env.*.sample
-!.env.template
-!.env.*.template
+
+# ── Tests y cobertura ────────────────────────────────────────
+coverage/
+playwright-report/
+test-results/
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── Secretos y certificados ──────────────────────────────────
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.mobileprovision
+
+# ── Sistema operativo y editores ─────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# ── Herramientas locales ─────────────────────────────────────
+# Índice de GitNexus (se regenera con `node .gitnexus/run.cjs analyze`)
+.gitnexus/
+# Ajustes personales de Claude Code
+.claude/settings.local.json

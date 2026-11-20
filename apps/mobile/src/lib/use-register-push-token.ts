@@ -4,6 +4,7 @@ import * as Notifications from "expo-notifications";
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import { apiFetch } from "./api";
+import { pushTokenStorage } from "./storage";
 
 /** Best-effort: registers this device's Expo push token against the logged-in user. */
 export function useRegisterPushToken(enabled: boolean) {
@@ -31,6 +32,7 @@ export function useRegisterPushToken(enabled: boolean) {
           platform: Platform.OS === "ios" ? "IOS" : "ANDROID",
         }),
       });
+      await pushTokenStorage.set(expoPushToken);
     })().catch(() => {
       // Push registration is best-effort; a failure here shouldn't block app usage.
     });

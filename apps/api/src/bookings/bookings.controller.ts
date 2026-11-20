@@ -1,3 +1,4 @@
+import { ListBookingsQueryDto } from './dto/list-bookings-query.dto';
 import {
   Body,
   Controller,
@@ -8,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -32,8 +34,11 @@ export class BookingsController {
   }
 
   @Get()
-  findAll(@CurrentTenant() tenantId: string) {
-    return this.bookingsService.findAll(tenantId);
+  findAll(
+    @CurrentTenant() tenantId: string,
+    @Query() query: ListBookingsQueryDto,
+  ) {
+    return this.bookingsService.findAll(tenantId, query);
   }
 
   @Get(':id')
