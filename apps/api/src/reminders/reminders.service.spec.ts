@@ -4,7 +4,7 @@ import { RemindersService } from './reminders.service';
 describe('RemindersService', () => {
   function buildService() {
     const remindersRepository = {
-      create: jest.fn().mockResolvedValue({ id: 'rem_1' }),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
       findAll: jest.fn(),
       findDuePending: jest.fn().mockResolvedValue([]),
       findClosedInvoiceIds: jest.fn().mockResolvedValue(new Set()),
@@ -25,11 +25,15 @@ describe('RemindersService', () => {
       sendToTokens: jest.fn().mockResolvedValue(undefined),
     };
     const emailService = { send: jest.fn().mockResolvedValue(undefined) };
+    const configService = {
+      getOrThrow: jest.fn().mockReturnValue('https://app.test'),
+    };
     const service = new RemindersService(
       remindersRepository as never,
       usersRepository as never,
       pushService as never,
       emailService as never,
+      configService as never,
     );
     return {
       service,
@@ -40,26 +44,109 @@ describe('RemindersService', () => {
     };
   }
 
-  it('schedules both a push and an email reminder for an invoice due date', async () => {
+  const ctx = (overrides: {
+    offsets?: number[];
+    clientReminders?: boolean;
+    email?: string | null;
+    dueDate?: Date;
+  }) => ({
+    tenant: {
+      name: 'Studio',
+      reminderOffsetsDays: overrides.offsets ?? [-3, 0, 3],
+      clientRemindersEnabled: overrides.clientReminders ?? true,
+    },
+    invoice: {
+      id: 'inv_1',
+      number: 4,
+      publicToken: 'tok_1',
+      totalAmount: '100.00',
+      currency: 'USD',
+      dueDate: overrides.dueDate ?? new Date(Date.now() + 10 * 86_400_000),
+    },
+    client: {
+      name: 'Ana',
+      email:
+        overrides.email === undefined ? 'ana@example.com' : overrides.email,
+    },
+  });
+
+  type Created = {
+    channel: string;
+    recipient: string;
+    recipientEmail?: string;
+    remindAt: Date;
+    message: string;
+  };
+  const created = (repo: { createMany: jest.Mock }) =>
+    (repo.createMany.mock.calls[0] as [string, Created[]])[1];
+
+  it('schedules an owner push and a client email per offset, with the payment link', async () => {
     const { service, remindersRepository } = buildService();
 
-    await service.createForInvoiceDueDate(
+    await service.scheduleForInvoice('tenant_1', ctx({}));
+
+    const rows = created(remindersRepository);
+    expect(rows).toHaveLength(6);
+    const clientEmails = rows.filter((r) => r.recipient === 'CLIENT');
+    expect(clientEmails).toHaveLength(3);
+    expect(clientEmails[0].recipientEmail).toBe('ana@example.com');
+    expect(clientEmails[0].message).toContain('https://app.test/pay/tok_1');
+  });
+
+  it('emails the studio on the due day when the client has no email', async () => {
+    const { service, remindersRepository } = buildService();
+
+    await service.scheduleForInvoice('tenant_1', ctx({ email: null }));
+
+    const emails = created(remindersRepository).filter(
+      (r) => r.channel === ReminderChannel.EMAIL,
+    );
+    expect(emails).toHaveLength(1);
+    expect(emails[0].recipient).toBe('OWNER');
+  });
+
+  it('skips reminder dates that are already in the past', async () => {
+    const { service, remindersRepository } = buildService();
+
+    await service.scheduleForInvoice(
       'tenant_1',
-      'inv_1',
-      new Date(),
-      'Payment due',
+      ctx({
+        dueDate: new Date(Date.now() + 86_400_000),
+        clientReminders: false,
+      }),
     );
 
-    expect(remindersRepository.create).toHaveBeenCalledTimes(2);
-    const calls = remindersRepository.create.mock.calls as [
-      string,
-      { channel: string; relatedType: string },
-    ][];
-    const channels = calls.map(([, input]) => input.channel);
-    expect(channels.sort()).toEqual(
-      [ReminderChannel.EMAIL, ReminderChannel.PUSH].sort(),
+    // -3 days is in the past; 0 and +3 remain (push each, plus studio email at 0).
+    const rows = created(remindersRepository);
+    expect(rows.filter((r) => r.channel === ReminderChannel.PUSH)).toHaveLength(
+      2,
     );
-    expect(calls[0][1].relatedType).toBe(ReminderRelatedType.INVOICE);
+    expect(rows.every((r) => r.remindAt > new Date())).toBe(true);
+  });
+
+  it('reschedules a booking reminder 24 h before and none for cancelled bookings', async () => {
+    const { service, remindersRepository } = buildService();
+    const booking = {
+      id: 'bk_1',
+      title: 'Boda',
+      clientName: 'Ana',
+      status: 'CONFIRMED',
+      scheduledAt: new Date(Date.now() + 3 * 86_400_000),
+    };
+
+    await service.scheduleForBooking('tenant_1', booking);
+    expect(remindersRepository.dismissPendingFor).toHaveBeenCalledWith(
+      'tenant_1',
+      ReminderRelatedType.BOOKING,
+      'bk_1',
+    );
+    expect(remindersRepository.createMany).toHaveBeenCalledTimes(1);
+
+    await service.scheduleForBooking('tenant_1', {
+      ...booking,
+      status: 'CANCELLED',
+    });
+    expect(remindersRepository.createMany).toHaveBeenCalledTimes(1);
   });
 
   it('dispatches due push reminders to owner tokens and marks them sent', async () => {
@@ -77,8 +164,9 @@ describe('RemindersService', () => {
 
     expect(pushService.sendToTokens).toHaveBeenCalledWith(
       ['ExponentPushToken[abc]'],
-      'Payment reminder',
+      'Recordatorio de pago',
       'Payment due',
+      { type: undefined, id: undefined },
     );
     expect(remindersRepository.claim).toHaveBeenCalledWith('rem_1', 'SENT');
   });
@@ -98,7 +186,7 @@ describe('RemindersService', () => {
 
     expect(emailService.send).toHaveBeenCalledWith(
       'owner@example.com',
-      'Payment reminder',
+      'Recordatorio de pago',
       'Payment due',
     );
     expect(remindersRepository.claim).toHaveBeenCalledWith('rem_2', 'SENT');

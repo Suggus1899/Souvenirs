@@ -2,17 +2,20 @@ import { Injectable } from '@nestjs/common';
 import {
   InvoiceStatus,
   ReminderChannel,
+  ReminderRecipient,
   ReminderRelatedType,
   ReminderStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 
-interface CreateReminderInput {
+export interface CreateReminderInput {
   relatedType: ReminderRelatedType;
   relatedId: string;
   remindAt: Date;
   channel: ReminderChannel;
+  recipient?: ReminderRecipient;
+  recipientEmail?: string;
   message: string;
 }
 
@@ -23,9 +26,12 @@ export class RemindersRepository {
     private readonly tenantDb: TenantPrismaService,
   ) {}
 
-  create(tenantId: string, input: CreateReminderInput) {
+  createMany(tenantId: string, inputs: CreateReminderInput[]) {
+    if (inputs.length === 0) return Promise.resolve({ count: 0 });
     return this.tenantDb.run(tenantId, (tx) =>
-      tx.reminder.create({ data: { ...input, tenantId } }),
+      tx.reminder.createMany({
+        data: inputs.map((input) => ({ ...input, tenantId })),
+      }),
     );
   }
 

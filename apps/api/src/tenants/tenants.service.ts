@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Plan } from '@prisma/client';
 import { StripeService } from '../stripe/stripe.service';
+import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { TenantsRepository } from './tenants.repository';
 
 @Injectable()
@@ -20,9 +21,13 @@ export class TenantsService {
   async findOne(tenantId: string) {
     const tenant = await this.tenantsRepository.findById(tenantId);
     if (!tenant) {
-      throw new NotFoundException('Tenant not found');
+      throw new NotFoundException('Estudio no encontrado');
     }
     return tenant;
+  }
+
+  updateSettings(tenantId: string, dto: UpdateTenantDto) {
+    return this.tenantsRepository.updateSettings(tenantId, dto);
   }
 
   async createStripeOnboardingLink(tenantId: string) {
@@ -57,7 +62,7 @@ export class TenantsService {
   async createBillingCheckoutSession(tenantId: string) {
     const tenant = await this.findOne(tenantId);
     if (tenant.plan === Plan.PRO) {
-      throw new BadRequestException('Ya tenés una suscripción Pro activa');
+      throw new BadRequestException('Ya tienes una suscripción Pro activa');
     }
     const session = await this.stripeService.createSubscriptionCheckoutSession({
       tenantId,
@@ -69,7 +74,7 @@ export class TenantsService {
   async createBillingPortalSession(tenantId: string) {
     const tenant = await this.findOne(tenantId);
     if (!tenant.stripeCustomerId) {
-      throw new BadRequestException('No tenés una suscripción activa todavía');
+      throw new BadRequestException('Todavía no tienes una suscripción activa');
     }
     const session = await this.stripeService.createBillingPortalSession(
       tenant.stripeCustomerId,

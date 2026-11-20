@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BookingsModule } from '../bookings/bookings.module';
 import { ClientsModule } from '../clients/clients.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { RemindersModule } from '../reminders/reminders.module';
 import { StripeModule } from '../stripe/stripe.module';
 import { TenantsModule } from '../tenants/tenants.module';
@@ -15,6 +16,7 @@ import { InvoicesService } from './invoices.service';
     TenantsModule,
     StripeModule,
     RemindersModule,
+    NotificationsModule,
   ],
   controllers: [InvoicesController],
   providers: [InvoicesService, InvoicesRepository],

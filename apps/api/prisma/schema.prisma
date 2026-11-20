@@ -55,6 +55,11 @@ enum ReminderChannel {
   EMAIL
 }
 
+enum ReminderRecipient {
+  OWNER
+  CLIENT
+}
+
 enum ReminderStatus {
   PENDING
   SENT
@@ -67,24 +72,29 @@ enum Platform {
 }
 
 model Tenant {
-  id                   String   @id @default(cuid())
-  name                 String
-  plan                 Plan     @default(FREE)
-  stripeAccountId      String?
-  stripeOnboarded      Boolean  @default(false)
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-  subscriptionStatus   String?
-  createdAt            DateTime @default(now())
+  id                     String   @id @default(cuid())
+  name                   String
+  plan                   Plan     @default(FREE)
+  stripeAccountId        String?
+  stripeOnboarded        Boolean  @default(false)
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  subscriptionStatus     String?
+  /// Days relative to an invoice's due date at which reminders go out (negative = before).
+  reminderOffsetsDays    Int[]    @default([-3, 0, 3])
+  /// Whether reminder emails also go to the invoice's client, not only to the studio.
+  clientRemindersEnabled Boolean  @default(true)
+  createdAt              DateTime @default(now())
 
-  users      User[]
-  clients    Client[]
-  services   Service[]
-  bookings   Booking[]
-  invoices   Invoice[]
-  payments   Payment[]
-  reminders  Reminder[]
-  pushTokens PushToken[]
+  users        User[]
+  clients      Client[]
+  services     Service[]
+  bookings     Booking[]
+  invoices     Invoice[]
+  payments     Payment[]
+  reminders    Reminder[]
+  pushTokens   PushToken[]
+  invoiceItems InvoiceItem[]
 
   @@unique([stripeAccountId])
   @@unique([stripeCustomerId])
@@ -100,9 +110,10 @@ model User {
   name         String
   createdAt    DateTime @default(now())
 
-  tenant          Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  bookingsCreated Booking[]   @relation("BookingCreatedBy")
-  pushTokens      PushToken[]
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  bookingsCreated     Booking[]            @relation("BookingCreatedBy")
+  pushTokens          PushToken[]
+  passwordResetTokens PasswordResetToken[]
 
   @@index([tenantId])
   @@map("users")
@@ -126,11 +137,11 @@ model Client {
 }
 
 model Service {
-  id              String   @id @default(cuid())
+  id              String  @id @default(cuid())
   tenantId        String
   name            String
   description     String?
-  basePrice       Decimal  @db.Decimal(10, 2)
+  basePrice       Decimal @db.Decimal(10, 2)
   durationMinutes Int
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -167,6 +178,12 @@ model Booking {
 model Invoice {
   id                      String        @id @default(cuid())
   tenantId                String
+  /// Sequential per tenant (1, 2, 3...), shown to clients as the invoice number.
+  number                  Int
+  /// Unguessable id for the client-facing payment page (/pay/:publicToken).
+  publicToken             String        @unique
+  notes                   String?
+  sentAt                  DateTime?
   bookingId               String?
   clientId                String
   totalAmount             Decimal       @db.Decimal(10, 2)
@@ -178,14 +195,32 @@ model Invoice {
   paymentLinkUrl          String?
   createdAt               DateTime      @default(now())
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  booking  Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  client   Client    @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking  Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  client   Client        @relation(fields: [clientId], references: [id], onDelete: Restrict)
   payments Payment[]
+  items    InvoiceItem[]
 
+  @@unique([tenantId, number])
   @@index([tenantId, createdAt])
   @@index([clientId])
   @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  tenantId    String
+  invoiceId   String
+  description String
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(10, 2)
+  position    Int
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
 }
 
 model Payment {
@@ -208,14 +243,17 @@ model Payment {
 }
 
 model Reminder {
-  id          String              @id @default(cuid())
-  tenantId    String
-  relatedType ReminderRelatedType
-  relatedId   String
-  remindAt    DateTime
-  channel     ReminderChannel     @default(PUSH)
-  status      ReminderStatus      @default(PENDING)
-  message     String
+  id             String              @id @default(cuid())
+  tenantId       String
+  relatedType    ReminderRelatedType
+  relatedId      String
+  remindAt       DateTime
+  channel        ReminderChannel     @default(PUSH)
+  recipient      ReminderRecipient   @default(OWNER)
+  /// Snapshot of the client's email for CLIENT reminders.
+  recipientEmail String?
+  status         ReminderStatus      @default(PENDING)
+  message        String
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -253,4 +291,20 @@ model ExchangeRate {
   fetchedAt DateTime           @default(now())
 
   @@map("exchange_rates")
+}
+
+// Not tenant-scoped on purpose: used before login (forgot password, accepting an invite).
+// Only the hash of the token is stored; the raw token travels once, in the email link.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }

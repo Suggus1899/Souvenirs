@@ -6,12 +6,14 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { TenantsRepository } from '../tenants/tenants.repository';
+import {
+  PasswordTokensService,
+  SALT_ROUNDS,
+} from '../users/password-tokens.service';
 import { UsersRepository } from '../users/users.repository';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './jwt-payload.interface';
-
-const SALT_ROUNDS = 10;
 
 @Injectable()
 export class AuthService {
@@ -19,19 +21,21 @@ export class AuthService {
     private readonly usersRepository: UsersRepository,
     private readonly tenantsRepository: TenantsRepository,
     private readonly jwtService: JwtService,
+    private readonly passwordTokens: PasswordTokensService,
   ) {}
 
   async register(dto: RegisterDto) {
-    const existing = await this.usersRepository.findByEmail(dto.email);
+    const email = dto.email.toLowerCase();
+    const existing = await this.usersRepository.findByEmail(email);
     if (existing) {
-      throw new ConflictException('Email already in use');
+      throw new ConflictException('Ese email ya tiene una cuenta');
     }
 
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
     const tenant = await this.tenantsRepository.createWithOwner({
       tenantName: dto.tenantName,
       ownerName: dto.name,
-      ownerEmail: dto.email,
+      ownerEmail: email,
       passwordHash,
     });
     const owner = tenant.users[0];
@@ -47,9 +51,11 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.usersRepository.findByEmail(dto.email);
+    const user = await this.usersRepository.findByEmail(
+      dto.email.toLowerCase(),
+    );
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Email o contraseña incorrectos');
     }
 
     const passwordMatches = await bcrypt.compare(
@@ -57,9 +63,25 @@ export class AuthService {
       user.passwordHash,
     );
     if (!passwordMatches) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Email o contraseña incorrectos');
     }
 
+    return this.buildAuthResponse(user.id, user.tenantId, user.role, {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId,
+    });
+  }
+
+  forgotPassword(email: string) {
+    return this.passwordTokens.requestReset(email.toLowerCase());
+  }
+
+  /** Sets the new password and logs the user in, so an accepted invitation lands straight in the panel. */
+  async resetPassword(token: string, password: string) {
+    const user = await this.passwordTokens.consume(token, password);
     return this.buildAuthResponse(user.id, user.tenantId, user.role, {
       id: user.id,
       name: user.name,

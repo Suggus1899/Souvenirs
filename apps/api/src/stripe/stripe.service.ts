@@ -10,6 +10,8 @@ interface CreateCheckoutSessionParams {
   currency: string;
   amountInCents: number;
   description: string;
+  successUrl: string;
+  cancelUrl: string;
 }
 
 interface CreateSubscriptionCheckoutSessionParams {
@@ -42,7 +44,6 @@ export class StripeService {
   createCheckoutSession(
     params: CreateCheckoutSessionParams,
   ): Promise<Stripe.Checkout.Session> {
-    const webAppUrl = this.configService.getOrThrow<string>('WEB_APP_URL');
     return this.stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
@@ -60,8 +61,8 @@ export class StripeService {
         transfer_data: { destination: params.connectedAccountId },
       },
       metadata: { invoiceId: params.invoiceId, tenantId: params.tenantId },
-      success_url: `${webAppUrl}/invoices/${params.invoiceId}?payment=success`,
-      cancel_url: `${webAppUrl}/invoices/${params.invoiceId}?payment=cancelled`,
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
     });
   }
 

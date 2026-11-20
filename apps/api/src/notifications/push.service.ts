@@ -10,6 +10,7 @@ export class PushService {
     tokens: string[],
     title: string,
     body: string,
+    data?: Record<string, string>,
   ): Promise<void> {
     const validTokens = tokens.filter((token) => Expo.isExpoPushToken(token));
     if (validTokens.length === 0) {
@@ -19,7 +20,7 @@ export class PushService {
       return;
     }
 
-    const messages = validTokens.map((to) => ({ to, title, body }));
+    const messages = validTokens.map((to) => ({ to, title, body, data }));
     const chunks = this.expo.chunkPushNotifications(messages);
     for (const chunk of chunks) {
       await this.expo.sendPushNotificationsAsync(chunk);

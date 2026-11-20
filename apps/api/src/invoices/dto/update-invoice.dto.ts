@@ -1,13 +1,29 @@
+import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsDateString,
   IsNumber,
   IsOptional,
   IsString,
   Length,
+  MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { InvoiceItemDto } from './invoice-item.dto';
 
 export class UpdateInvoiceDto {
+  /** Replaces every line item and recomputes the total. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => InvoiceItemDto)
+  items?: InvoiceItemDto[];
+
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
@@ -21,4 +37,9 @@ export class UpdateInvoiceDto {
   @IsOptional()
   @IsDateString()
   dueDate?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
 }

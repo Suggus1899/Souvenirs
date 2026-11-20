@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
@@ -43,4 +44,9 @@ export class UpdateBookingDto {
   @IsOptional()
   @IsEnum(BookingStatus)
   status?: BookingStatus;
+
+  /** Skip the overlap check (e.g. a second shooter covers the other session). */
+  @IsOptional()
+  @IsBoolean()
+  allowOverlap?: boolean;
 }
