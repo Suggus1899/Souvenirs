@@ -1,18 +1,11 @@
+import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Card, Chip, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { apiFetch } from "@/lib/api";
+import { INVOICE_STATUS_LABEL, invoiceNumber } from "@/lib/labels";
 import type { Client, Invoice } from "@souvenirs/shared";
-
-const STATUS_LABEL: Record<Invoice["status"], string> = {
-  DRAFT: "Borrador",
-  SENT: "Enviada",
-  PARTIAL: "Parcial",
-  PAID: "Pagada",
-  OVERDUE: "Vencida",
-  CANCELLED: "Cancelada",
-};
 
 const PENDING_STATUSES: Invoice["status"][] = ["SENT", "PARTIAL", "OVERDUE"];
 
@@ -28,8 +21,8 @@ export default function InvoicesScreen() {
     setError(null);
     try {
       const [invoicesData, clientsData] = await Promise.all([
-        apiFetch<Invoice[]>("/invoices"),
-        apiFetch<Client[]>("/clients"),
+        apiFetch<Invoice[]>("/invoices?take=200"),
+        apiFetch<Client[]>("/clients?take=200"),
       ]);
       setInvoices(invoicesData.filter((i) => PENDING_STATUSES.includes(i.status)));
       setClientsById(new Map(clientsData.map((c) => [c.id, c.name])));
@@ -75,18 +68,24 @@ export default function InvoicesScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListEmptyComponent={<Text style={styles.empty}>No tienes facturas pendientes de cobro.</Text>}
         renderItem={({ item }) => (
-          <Card style={styles.card}>
+          <Card
+            style={styles.card}
+            onPress={() => router.push(`/invoice/${item.id}`)}
+            accessibilityHint="Abre el detalle para registrar un pago"
+          >
             <Card.Content>
-              <Text variant="titleMedium">{clientsById.get(item.clientId) ?? "—"}</Text>
+              <Text variant="titleMedium">
+                {invoiceNumber(item.number)} · {clientsById.get(item.clientId) ?? "—"}
+              </Text>
               <View style={styles.row}>
                 <Text variant="bodyMedium">
                   {item.totalAmount} {item.currency}
                 </Text>
-                <Chip compact>{STATUS_LABEL[item.status]}</Chip>
+                <Chip compact>{INVOICE_STATUS_LABEL[item.status]}</Chip>
               </View>
               {item.dueDate && (
                 <Text variant="bodySmall" style={styles.due}>
-                  Vence: {new Date(item.dueDate).toLocaleDateString("es-VE")}
+                  Vence: {new Date(item.dueDate).toLocaleDateString("es-VE", { timeZone: "UTC" })}
                 </Text>
               )}
             </Card.Content>

@@ -7,8 +7,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { apiFetch } from "./api";
-import { tokenStorage } from "./storage";
+import { apiFetch, setUnauthorizedHandler } from "./api";
+import { pushTokenStorage, tokenStorage } from "./storage";
 
 interface AuthContextValue {
   token: string | null;
@@ -39,10 +39,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(res.accessToken);
   }, []);
 
-  const logout = useCallback(async () => {
-    await tokenStorage.clear();
+  /** Drops the local session without calling the API (it already rejected the token). */
+  const clearSession = useCallback(async () => {
+    await Promise.all([tokenStorage.clear(), pushTokenStorage.clear()]);
     setToken(null);
   }, []);
+
+  const logout = useCallback(async () => {
+    // Stop this device from receiving the user's reminders; best-effort.
+    const pushToken = await pushTokenStorage.get();
+    if (pushToken) {
+      await apiFetch(`/users/me/push-tokens/${encodeURIComponent(pushToken)}`, {
+        method: "DELETE",
+      }).catch(() => undefined);
+    }
+    await clearSession();
+  }, [clearSession]);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => void clearSession());
+    return () => setUnauthorizedHandler(null);
+  }, [clearSession]);
 
   const value = useMemo(
     () => ({ token, isLoading, login, logout }),
