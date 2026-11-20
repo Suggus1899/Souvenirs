@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { dayKey, formatTime, LOCALE } from "@/lib/labels";
+import { dayKey, formatDateTime, formatTime, LOCALE } from "@/lib/labels";
 import type { Booking } from "@souvenirs/shared";
 
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -32,6 +32,10 @@ export function BookingCalendar({
     const key = dayKey(new Date(booking.scheduledAt));
     byDay.set(key, [...(byDay.get(key) ?? []), booking]);
   }
+
+  const monthBookings = bookings
+    .filter((b) => dayKey(new Date(b.scheduledAt)).startsWith(month))
+    .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
 
   const cells: (number | null)[] = [
     ...Array.from({ length: leadingBlanks }, () => null),
@@ -67,11 +71,11 @@ export function BookingCalendar({
           </div>
         ))}
         {cells.map((day, index) => {
-          if (day === null) return <div key={`blank-${index}`} className="min-h-20 bg-background/60" />;
+          if (day === null) return <div key={`blank-${index}`} className="min-h-14 bg-background/60 sm:min-h-24" />;
           const key = `${month}-${String(day).padStart(2, "0")}`;
           const dayBookings = byDay.get(key) ?? [];
           return (
-            <div key={key} className="flex min-h-20 flex-col gap-1 bg-background p-1 sm:min-h-24">
+            <div key={key} className="flex min-h-14 flex-col gap-1 bg-background p-1 sm:min-h-24">
               <span
                 className={cn(
                   "self-end rounded-full px-1.5 text-xs",
@@ -80,7 +84,15 @@ export function BookingCalendar({
               >
                 {day}
               </span>
-              <ul className="flex flex-col gap-1">
+              {/* Phones: a dot per session; the agenda list below has the details. */}
+              {dayBookings.length > 0 && (
+                <span className="flex flex-wrap justify-center gap-0.5 sm:hidden" aria-label={`${dayBookings.length} sesiones`}>
+                  {dayBookings.slice(0, 3).map((b) => (
+                    <span key={b.id} className="size-1.5 rounded-full bg-primary" />
+                  ))}
+                </span>
+              )}
+              <ul className="hidden flex-col gap-1 sm:flex">
                 {dayBookings.map((booking) => (
                   <li
                     key={booking.id}
@@ -100,6 +112,20 @@ export function BookingCalendar({
           );
         })}
       </div>
+      <ol className="flex flex-col divide-y divide-border rounded-lg border border-border sm:hidden" aria-label="Sesiones del mes">
+        {monthBookings.length === 0 ? (
+          <li className="p-4 text-center text-sm text-muted-foreground">Sin sesiones este mes.</li>
+        ) : (
+          monthBookings.map((booking) => (
+            <li key={booking.id} className="flex flex-col gap-0.5 p-3 text-sm">
+              <span className="font-medium">{booking.title}</span>
+              <span className="text-xs text-muted-foreground">
+                {formatDateTime(booking.scheduledAt)} · {clientNames.get(booking.clientId) ?? "—"}
+              </span>
+            </li>
+          ))
+        )}
+      </ol>
     </section>
   );
 }

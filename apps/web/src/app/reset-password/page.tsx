@@ -1,5 +1,6 @@
 "use client";
 
+import { Logo } from "@/components/brand/logo";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
@@ -97,7 +98,10 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background px-4 py-10">
+      <Link href="/" aria-label="Souvenirs, inicio">
+        <Logo className="text-2xl" markClassName="size-9" />
+      </Link>
       <Card className="w-full max-w-sm">
         {/* useSearchParams needs a Suspense boundary for static rendering. */}
         <Suspense>

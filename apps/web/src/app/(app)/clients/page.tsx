@@ -39,21 +39,25 @@ export default async function ClientsPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Teléfono</TableHead>
+                  <TableHead className="hidden lg:table-cell">Email</TableHead>
+                  <TableHead className="hidden xl:table-cell">Teléfono</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {clients.map((client) => (
                   <TableRow key={client.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium whitespace-normal">
                       <Link href={`/clients/${client.id}`} className="underline-offset-4 hover:underline">
                         {client.name}
                       </Link>
+                      {/* Small screens: contact data under the name instead of in hidden columns. */}
+                      <span className="block text-xs font-normal break-all text-muted-foreground lg:hidden">
+                        {[client.email, client.phone].filter(Boolean).join(" · ")}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{client.email ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{client.phone ?? "—"}</TableCell>
+                    <TableCell className="hidden text-muted-foreground lg:table-cell">{client.email ?? "—"}</TableCell>
+                    <TableCell className="hidden text-muted-foreground xl:table-cell">{client.phone ?? "—"}</TableCell>
                     <TableCell className="flex justify-end gap-1">
                       <ClientDialog client={client} />
                       <DeleteClientButton clientId={client.id} clientName={client.name} />

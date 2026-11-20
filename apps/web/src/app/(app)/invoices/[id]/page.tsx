@@ -41,7 +41,7 @@ export default async function InvoiceDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-heading text-3xl">
             Factura {invoiceNumber(invoice.number)}
@@ -140,19 +140,22 @@ export default async function InvoiceDetailPage({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Fecha</TableHead>
+                  <TableHead className="hidden sm:table-cell">Fecha</TableHead>
                   <TableHead>Método</TableHead>
                   <TableHead>Monto</TableHead>
-                  <TableHead>Notas</TableHead>
+                  <TableHead className="hidden md:table-cell">Notas</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {payments.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell>{formatDate(p.paidAt)}</TableCell>
-                    <TableCell>{PAYMENT_METHOD_LABEL[p.method]}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{formatDate(p.paidAt)}</TableCell>
+                    <TableCell className="whitespace-normal">
+                      {PAYMENT_METHOD_LABEL[p.method]}
+                      <span className="block text-xs text-muted-foreground sm:hidden">{formatDate(p.paidAt)}</span>
+                    </TableCell>
                     <TableCell>{formatAmount(p.amount, invoice.currency)}</TableCell>
-                    <TableCell className="text-muted-foreground">{p.notes ?? "—"}</TableCell>
+                    <TableCell className="hidden whitespace-normal text-muted-foreground md:table-cell">{p.notes ?? "—"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

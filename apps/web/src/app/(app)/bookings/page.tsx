@@ -66,23 +66,32 @@ export default async function BookingsPage({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Título</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Estado</TableHead>
+                    <TableHead className="hidden xl:table-cell">Cliente</TableHead>
+                    <TableHead className="hidden lg:table-cell">Fecha</TableHead>
+                    <TableHead className="hidden sm:table-cell">Estado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {bookings.map((booking) => (
                     <TableRow key={booking.id}>
-                      <TableCell className="font-medium">{booking.title}</TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="font-medium whitespace-normal">
+                        {booking.title}
+                        <span className="block text-xs font-normal text-muted-foreground xl:hidden">
+                          {clientById.get(booking.clientId) ?? "—"}
+                          <span className="lg:hidden"> · {formatDateTime(booking.scheduledAt)}</span>
+                        </span>
+                        <Badge variant={BOOKING_STATUS_VARIANT[booking.status]} className="mt-1 sm:hidden">
+                          {BOOKING_STATUS_LABEL[booking.status]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden text-muted-foreground xl:table-cell">
                         {clientById.get(booking.clientId) ?? "—"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="hidden text-muted-foreground lg:table-cell">
                         {formatDateTime(booking.scheduledAt)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant={BOOKING_STATUS_VARIANT[booking.status]}>
                           {BOOKING_STATUS_LABEL[booking.status]}
                         </Badge>

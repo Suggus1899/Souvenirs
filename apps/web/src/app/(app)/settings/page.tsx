@@ -55,7 +55,7 @@ export default async function SettingsPage({
           </div>
           <CardDescription>
             {tenant.plan === "PRO"
-              ? "Facturas ilimitadas y cobro online con Stripe."
+              ? "Facturas ilimitadas. Puedes cancelar cuando quieras desde el portal de facturación."
               : "Hasta 5 facturas por mes. Actualiza a Pro para facturar sin límite."}
           </CardDescription>
         </CardHeader>

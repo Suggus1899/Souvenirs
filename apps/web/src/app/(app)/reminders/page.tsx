@@ -40,21 +40,26 @@ export default async function RemindersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Mensaje</TableHead>
-                  <TableHead>Canal</TableHead>
-                  <TableHead>Para</TableHead>
-                  <TableHead>Fecha</TableHead>
+                  <TableHead className="hidden lg:table-cell">Canal</TableHead>
+                  <TableHead className="hidden xl:table-cell">Para</TableHead>
+                  <TableHead className="hidden lg:table-cell">Fecha</TableHead>
                   <TableHead>Estado</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {reminders.map((reminder) => (
                   <TableRow key={reminder.id}>
-                    <TableCell className="max-w-md font-medium whitespace-normal">{reminder.message.split("\n")[0]}</TableCell>
-                    <TableCell>{CHANNEL_LABEL[reminder.channel]}</TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="max-w-md font-medium whitespace-normal">
+                      {reminder.message.split("\n")[0]}
+                      <span className="block text-xs font-normal text-muted-foreground lg:hidden">
+                        {CHANNEL_LABEL[reminder.channel]} · {formatDateTime(reminder.remindAt)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">{CHANNEL_LABEL[reminder.channel]}</TableCell>
+                    <TableCell className="hidden text-muted-foreground xl:table-cell">
                       {reminder.recipient === "CLIENT" ? (reminder.recipientEmail ?? "Cliente") : "Estudio"}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="hidden text-muted-foreground lg:table-cell">
                       {formatDateTime(reminder.remindAt)}
                     </TableCell>
                     <TableCell>

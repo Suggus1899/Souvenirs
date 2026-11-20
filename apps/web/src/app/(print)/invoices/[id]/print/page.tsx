@@ -20,20 +20,20 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ i
   const paidCents = (invoice.payments ?? []).reduce((sum, p) => sum + toCents(p.amount), 0);
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-8 bg-background p-8 text-foreground print:p-0">
-      <div className="flex items-center justify-between print:hidden">
+    <main className="mx-auto flex max-w-3xl flex-col gap-8 bg-background p-4 text-foreground sm:p-8 print:p-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link href={`/invoices/${invoice.id}`} className="text-sm underline underline-offset-4">
           Volver a la factura
         </Link>
         <PrintButton />
       </div>
 
-      <header className="flex items-start justify-between gap-4">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="font-heading text-2xl">{tenant.name}</p>
           <p className="text-sm text-muted-foreground">Factura {invoiceNumber(invoice.number)}</p>
         </div>
-        <dl className="text-right text-sm">
+        <dl className="text-sm sm:text-right">
           <div>
             <dt className="inline text-muted-foreground">Emitida: </dt>
             <dd className="inline">{formatDate(invoice.sentAt ?? invoice.createdAt)}</dd>
@@ -62,7 +62,7 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ i
         totalAmount={invoice.totalAmount}
       />
 
-      <dl className="ml-auto grid w-64 grid-cols-2 gap-1 text-sm">
+      <dl className="grid w-full grid-cols-2 gap-1 text-sm sm:ml-auto sm:w-64">
         <dt className="text-muted-foreground">Pagado</dt>
         <dd className="text-right">{formatMoney(paidCents, invoice.currency)}</dd>
         <dt className="font-medium">Saldo</dt>

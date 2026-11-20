@@ -2,8 +2,20 @@
   "name": "souvenirs",
   "version": "0.0.1",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
+    "db:up": "docker compose up -d postgres",
+    "db:migrate": "pnpm --filter api prisma:deploy",
     "dev:api": "pnpm --filter api start:dev",
-    "build:api": "pnpm --filter api build"
+    "dev:web": "pnpm --filter web dev",
+    "dev:mobile": "pnpm --filter mobile start",
+    "build": "pnpm --filter api build && pnpm --filter web build",
+    "build:api": "pnpm --filter api build",
+    "lint": "pnpm --filter api exec eslint \"{src,test}/**/*.ts\" && pnpm --filter web lint && pnpm --filter mobile lint",
+    "typecheck": "pnpm --filter api exec tsc --noEmit && pnpm --filter web exec next typegen && pnpm --filter web exec tsc --noEmit && pnpm --filter mobile exec tsc --noEmit",
+    "test": "pnpm --filter api test",
+    "test:e2e": "pnpm --filter api test:e2e"
   }
 }

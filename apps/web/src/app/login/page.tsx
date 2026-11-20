@@ -1,5 +1,6 @@
 "use client";
 
+import { Logo } from "@/components/brand/logo";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
@@ -53,10 +54,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background px-4 py-10">
+      <Link href="/" aria-label="Souvenirs, inicio">
+        <Logo className="text-2xl" markClassName="size-9" />
+      </Link>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Souvenirs</CardTitle>
+          <CardTitle className="font-heading text-2xl">Bienvenido de nuevo</CardTitle>
           <CardDescription>Ingresa a tu cuenta para gestionar clientes y pagos.</CardDescription>
         </CardHeader>
         <CardContent>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { LogoMark } from "@/components/brand/logo";
 import { InvoiceItemsTable } from "@/components/invoices/invoice-items-table";
 import { PayOnlineButton } from "@/components/pay/pay-online-button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +41,7 @@ export default async function PayPage({
   const cancelled = invoice.status === "CANCELLED";
 
   return (
-    <main className="flex min-h-screen justify-center bg-background px-4 py-10">
+    <main className="flex min-h-screen flex-col items-center gap-6 bg-background px-4 py-10">
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
@@ -102,6 +103,10 @@ export default async function PayPage({
           )}
         </CardContent>
       </Card>
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <LogoMark className="size-4 text-primary" />
+        Factura gestionada con Souvenirs
+      </p>
     </main>
   );
 }

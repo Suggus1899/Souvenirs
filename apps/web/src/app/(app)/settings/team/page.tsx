@@ -32,26 +32,29 @@ export default async function TeamPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nombre</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead className="hidden lg:table-cell">Email</TableHead>
                 <TableHead>Rol</TableHead>
-                <TableHead>Desde</TableHead>
+                <TableHead className="hidden xl:table-cell">Desde</TableHead>
                 {isOwner && <TableHead className="text-right">Acciones</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {team.map((member) => (
                 <TableRow key={member.id}>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-medium whitespace-normal">
                     {member.name}
                     {member.id === me.id && <span className="text-muted-foreground"> (tú)</span>}
+                    <span className="block text-xs font-normal break-all text-muted-foreground lg:hidden">
+                      {member.email}
+                    </span>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{member.email}</TableCell>
+                  <TableCell className="hidden text-muted-foreground lg:table-cell">{member.email}</TableCell>
                   <TableCell>
                     <Badge variant={member.role === "OWNER" ? "default" : "outline"}>
                       {member.role === "OWNER" ? "Dueño" : "Asistente"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(member.createdAt)}</TableCell>
+                  <TableCell className="hidden text-muted-foreground xl:table-cell">{formatDate(member.createdAt)}</TableCell>
                   {isOwner && (
                     <TableCell className="text-right">
                       {member.role !== "OWNER" && (

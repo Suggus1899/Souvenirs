@@ -38,7 +38,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="font-heading text-3xl">{client.name}</h1>
           <p className="text-sm text-muted-foreground">
@@ -112,7 +112,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 <TableRow>
                   <TableHead>N.º</TableHead>
                   <TableHead>Monto</TableHead>
-                  <TableHead>Vencimiento</TableHead>
+                  <TableHead className="hidden sm:table-cell">Vencimiento</TableHead>
                   <TableHead>Estado</TableHead>
                 </TableRow>
               </TableHeader>
@@ -125,7 +125,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                       </Link>
                     </TableCell>
                     <TableCell>{formatAmount(invoice.totalAmount, invoice.currency)}</TableCell>
-                    <TableCell className="text-muted-foreground">{formatDate(invoice.dueDate)}</TableCell>
+                    <TableCell className="hidden text-muted-foreground sm:table-cell">{formatDate(invoice.dueDate)}</TableCell>
                     <TableCell>
                       <Badge variant={INVOICE_STATUS_VARIANT[invoice.status]}>
                         {INVOICE_STATUS_LABEL[invoice.status]}

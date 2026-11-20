@@ -73,11 +73,11 @@ export default async function InvoicesPage({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>N.º</TableHead>
+                  <TableHead className="hidden sm:table-cell">N.º</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Monto</TableHead>
-                  <TableHead>Vencimiento</TableHead>
-                  <TableHead>Estado</TableHead>
+                  <TableHead className="hidden md:table-cell">Vencimiento</TableHead>
+                  <TableHead className="hidden sm:table-cell">Estado</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -85,14 +85,20 @@ export default async function InvoicesPage({
                   const href = `/invoices/${invoice.id}`;
                   return (
                     <TableRow key={invoice.id}>
-                      <TableCell className="font-mono text-sm">
+                      <TableCell className="hidden font-mono text-sm sm:table-cell">
                         <Link href={href} className="block">
                           {invoiceNumber(invoice.number)}
                         </Link>
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium whitespace-normal">
                         <Link href={href} className="block">
                           {clientById.get(invoice.clientId) ?? "—"}
+                          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-normal text-muted-foreground sm:hidden">
+                            {invoiceNumber(invoice.number)} · vence {formatDate(invoice.dueDate)}
+                            <Badge variant={INVOICE_STATUS_VARIANT[invoice.status]}>
+                              {INVOICE_STATUS_LABEL[invoice.status]}
+                            </Badge>
+                          </span>
                         </Link>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
@@ -101,12 +107,12 @@ export default async function InvoicesPage({
                           <BsEquivalent amount={invoice.totalAmount} currency={invoice.currency} rates={rates} />
                         </Link>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="hidden text-muted-foreground md:table-cell">
                         <Link href={href} className="block">
                           {formatDate(invoice.dueDate)}
                         </Link>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Link href={href} className="block">
                           <Badge variant={INVOICE_STATUS_VARIANT[invoice.status]}>
                             {INVOICE_STATUS_LABEL[invoice.status]}
