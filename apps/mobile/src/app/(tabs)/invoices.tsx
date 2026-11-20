@@ -73,7 +73,7 @@ export default function InvoicesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        ListEmptyComponent={<Text style={styles.empty}>No tenés facturas pendientes de cobro.</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>No tienes facturas pendientes de cobro.</Text>}
         renderItem={({ item }) => (
           <Card style={styles.card}>
             <Card.Content>
@@ -86,7 +86,7 @@ export default function InvoicesScreen() {
               </View>
               {item.dueDate && (
                 <Text variant="bodySmall" style={styles.due}>
-                  Vence: {new Date(item.dueDate).toLocaleDateString("es-AR")}
+                  Vence: {new Date(item.dueDate).toLocaleDateString("es-VE")}
                 </Text>
               )}
             </Card.Content>

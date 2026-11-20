@@ -23,7 +23,7 @@ export default async function ServicesPage() {
         <CardContent>
           {services.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Todavía no cargaste ningún servicio.
+              Todavía no has agregado ningún servicio.
             </p>
           ) : (
             <Table>

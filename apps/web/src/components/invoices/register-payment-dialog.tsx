@@ -30,7 +30,15 @@ const METHODS = [
   { value: "OTHER", label: "Otro" },
 ];
 
-export function RegisterPaymentDialog({ invoiceId }: { invoiceId: string }) {
+export function RegisterPaymentDialog({
+  invoiceId,
+  maxAmount,
+  currency,
+}: {
+  invoiceId: string;
+  maxAmount: number;
+  currency: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -76,7 +84,20 @@ export function RegisterPaymentDialog({ invoiceId }: { invoiceId: string }) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="amount">Monto</Label>
-            <Input id="amount" name="amount" type="number" step="0.01" min="0.01" required />
+            <Input
+              id="amount"
+              name="amount"
+              type="number"
+              step="0.01"
+              min="0.01"
+              max={maxAmount}
+              defaultValue={maxAmount}
+              required
+              aria-describedby="amount-hint"
+            />
+            <p id="amount-hint" className="text-xs text-muted-foreground">
+              Saldo pendiente: {maxAmount.toFixed(2)} {currency}
+            </p>
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="method">Método</Label>

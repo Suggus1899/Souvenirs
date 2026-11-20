@@ -81,8 +81,13 @@ export class InvoicesService {
     return invoice;
   }
 
-  findAll(tenantId: string, query: ListInvoicesQueryDto = {}) {
-    return this.invoicesRepository.findAll(tenantId, query);
+  /** List rows carry `paidAmount` instead of the payments themselves. */
+  async findAll(tenantId: string, query: ListInvoicesQueryDto = {}) {
+    const invoices = await this.invoicesRepository.findAll(tenantId, query);
+    return invoices.map(({ payments, ...invoice }) => ({
+      ...invoice,
+      paidAmount: paidTotal({ payments }).toFixed(2),
+    }));
   }
 
   async findOne(tenantId: string, id: string) {

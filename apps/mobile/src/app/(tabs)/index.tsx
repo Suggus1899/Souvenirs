@@ -74,7 +74,7 @@ export default function BookingsScreen() {
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListEmptyComponent={
-          <Text style={styles.empty}>No tenés reservas próximas.</Text>
+          <Text style={styles.empty}>No tienes reservas próximas.</Text>
         }
         renderItem={({ item }) => (
           <Card style={styles.card}>
@@ -83,7 +83,7 @@ export default function BookingsScreen() {
               <Text variant="bodyMedium">{clientsById.get(item.clientId) ?? "—"}</Text>
               <View style={styles.row}>
                 <Text variant="bodySmall">
-                  {new Date(item.scheduledAt).toLocaleString("es-AR", {
+                  {new Date(item.scheduledAt).toLocaleString("es-VE", {
                     dateStyle: "medium",
                     timeStyle: "short",
                   })}

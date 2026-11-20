@@ -246,6 +246,16 @@ describe('Product flows (e2e): invoices, public page, team, password reset', () 
     const team = await auth(api().get('/users')).expect(200);
     expect(team.body).toHaveLength(2);
     expect(team.body[0]).not.toHaveProperty('passwordHash');
+
+    // Removing the member revokes their still-unexpired token right away.
+    const assistantId = team.body.find(
+      (m: { role: string }) => m.role === 'ASSISTANT',
+    ).id;
+    await auth(api().delete(`/users/${assistantId}`)).expect(204);
+    await api()
+      .get('/clients')
+      .set('Authorization', `Bearer ${assistantToken}`)
+      .expect(401);
   });
 
   it('resets a forgotten password and answers the same for unknown emails', async () => {

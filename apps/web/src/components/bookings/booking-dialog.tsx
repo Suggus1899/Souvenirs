@@ -19,34 +19,48 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { apiClientFetch } from "@/lib/api-client";
+import { ApiError } from "@/lib/api-error";
 import type { Booking, Client, Service } from "@souvenirs/shared";
 
+/** <input type="datetime-local"> wants local wall-clock time, not the UTC ISO string. */
 function toDatetimeLocal(iso?: string) {
   if (!iso) return "";
-  return iso.slice(0, 16);
+  const date = new Date(iso);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 }
 
 export function BookingDialog({
   booking,
   clients,
   services,
+  defaultClientId,
+  defaultDate,
 }: {
   booking?: Booking;
   clients: Client[];
   services: Service[];
+  defaultClientId?: string;
+  /** yyyy-mm-dd: preselects the day when creating from the calendar. */
+  defaultDate?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [overlapForm, setOverlapForm] = useState<HTMLFormElement | null>(null);
   const isEditing = Boolean(booking);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await save(event.currentTarget, false);
+  }
+
+  async function save(form: HTMLFormElement, allowOverlap: boolean) {
     setError(null);
+    setOverlapForm(null);
     setLoading(true);
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
     const serviceId = formData.get("serviceId");
     const scheduledAt = formData.get("scheduledAt");
     const payload = {
@@ -57,6 +71,7 @@ export function BookingDialog({
       durationMinutes: Number(formData.get("durationMinutes")),
       location: formData.get("location") || undefined,
       notes: formData.get("notes") || undefined,
+      ...(allowOverlap ? { allowOverlap: true } : {}),
     };
 
     try {
@@ -69,6 +84,8 @@ export function BookingDialog({
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Algo salió mal");
+      // 409 = another booking in that slot: let the user keep both on purpose.
+      if (err instanceof ApiError && err.status === 409) setOverlapForm(form);
     } finally {
       setLoading(false);
     }
@@ -91,14 +108,14 @@ export function BookingDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{isEditing ? "Editar reserva" : "Nueva reserva"}</DialogTitle>
-          <DialogDescription>Agendá una sesión con un cliente.</DialogDescription>
+          <DialogDescription>Agenda una sesión con un cliente.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="clientId">Cliente</Label>
-            <Select name="clientId" defaultValue={booking?.clientId} required>
+            <Select name="clientId" defaultValue={booking?.clientId ?? defaultClientId} required>
               <SelectTrigger id="clientId" className="w-full">
-                <SelectValue placeholder="Elegí un cliente" />
+                <SelectValue placeholder="Elige un cliente" />
               </SelectTrigger>
               <SelectContent>
                 {clients.map((client) => (
@@ -136,7 +153,7 @@ export function BookingDialog({
                 name="scheduledAt"
                 type="datetime-local"
                 required
-                defaultValue={toDatetimeLocal(booking?.scheduledAt)}
+                defaultValue={booking ? toDatetimeLocal(booking.scheduledAt) : defaultDate ? `${defaultDate}T10:00` : ""}
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -161,6 +178,16 @@ export function BookingDialog({
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
+            {overlapForm && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading}
+                onClick={() => save(overlapForm, true)}
+              >
+                Guardar de todas formas
+              </Button>
+            )}
             <Button type="submit" disabled={loading}>
               {loading ? "Guardando..." : "Guardar"}
             </Button>

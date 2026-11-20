@@ -71,12 +71,12 @@ const PLANS = [
 const FAQS = [
   {
     question: "¿Necesito tarjeta para empezar?",
-    answer: "No. El plan gratis no pide tarjeta — solo la necesitás si upgradeás a Pro.",
+    answer: "No. El plan gratis no pide tarjeta — solo la necesitas si pasas a Pro.",
   },
   {
     question: "¿Funciona en Venezuela?",
     answer:
-      "Sí. Además de Stripe para pagos internacionales, podés registrar pagos en Pago Móvil, Zelle, Binance/USDT y efectivo en bolívares.",
+      "Sí. Además de Stripe para pagos internacionales, puedes registrar pagos en Pago Móvil, Zelle, Binance/USDT y efectivo en bolívares.",
   },
   {
     question: "¿Puedo facturar en dólares y ver el equivalente en bolívares?",
@@ -86,7 +86,7 @@ const FAQS = [
   {
     question: "¿Qué pasa si supero el límite del plan gratis?",
     answer:
-      "Todo lo demás sigue sin límite; para generar más de 5 facturas por mes necesitás pasar a Pro.",
+      "Todo lo demás sigue sin límite; para generar más de 5 facturas por mes necesitas pasar a Pro.",
   },
   {
     question: "¿Mis datos están aislados de otros estudios?",
@@ -104,36 +104,36 @@ const FEATURES = [
   {
     icon: CalendarDaysIcon,
     title: "Reservas",
-    description: "Agendá sesiones, asigná servicios y llevá el estado de cada reserva.",
+    description: "Agenda sesiones, asigna servicios y lleva el estado de cada reserva.",
   },
   {
     icon: DocumentTextIcon,
     title: "Facturas y pagos",
     description:
-      "Generá facturas, cobrá online con Stripe o registrá pagos manuales — efectivo, transferencia, Pago Móvil, Zelle y más.",
+      "Genera facturas, cobra online con Stripe o registra pagos manuales — efectivo, transferencia, Pago Móvil, Zelle y más.",
   },
   {
     icon: BellIcon,
     title: "Recordatorios automáticos",
-    description: "Nunca más te olvidés de cobrar: push y email automáticos antes del vencimiento.",
+    description: "Nunca más te olvides de cobrar: push y email automáticos antes del vencimiento.",
   },
 ];
 
 const STEPS = [
   {
     number: "1",
-    title: "Cargá clientes y servicios",
-    description: "Sumá tu cartera de clientes y los servicios que ofrecés, una sola vez.",
+    title: "Carga clientes y servicios",
+    description: "Suma tu cartera de clientes y los servicios que ofreces, una sola vez.",
   },
   {
     number: "2",
-    title: "Reservá y facturá",
-    description: "Agendá la sesión y generá la factura en el momento, con vencimiento automático.",
+    title: "Reserva y factura",
+    description: "Agenda la sesión y genera la factura en el momento, con vencimiento automático.",
   },
   {
     number: "3",
-    title: "Cobrá y olvidate del seguimiento",
-    description: "Cobrá online o registrá el pago manual — los recordatorios avisan solos antes de vencer.",
+    title: "Cobra y olvídate del seguimiento",
+    description: "Cobra online o registra el pago manual — los recordatorios avisan solos antes de vencer.",
   },
 ];
 
@@ -155,7 +155,7 @@ export default function LandingPage() {
             <Link href="/login">Ingresar</Link>
           </Button>
           <Button asChild>
-            <Link href="/register">Creá tu estudio</Link>
+            <Link href="/register">Crea tu estudio</Link>
           </Button>
         </div>
       </header>
@@ -316,7 +316,7 @@ export default function LandingPage() {
 
         <section className="mx-auto flex max-w-2xl flex-col items-center gap-6 px-4 py-24 text-center">
           <h2 className="font-heading text-3xl">¿Listo para ordenar tus cobros?</h2>
-          <p className="text-muted-foreground">Creá tu estudio gratis, no hace falta tarjeta.</p>
+          <p className="text-muted-foreground">Crea tu estudio gratis, no hace falta tarjeta.</p>
           <Button size="lg" asChild>
             <Link href="/register">Empezar gratis</Link>
           </Button>

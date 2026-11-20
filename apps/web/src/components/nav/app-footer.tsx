@@ -24,7 +24,7 @@ export function AppFooter({ variant = "compact" }: { variant?: "compact" | "mark
           <div className="flex flex-col gap-2 text-sm">
             <span className="font-medium">Producto</span>
             <Link href="/register" className="text-muted-foreground hover:text-foreground">
-              Creá tu estudio
+              Crea tu estudio
             </Link>
             <Link href="/login" className="text-muted-foreground hover:text-foreground">
               Ingresar

@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-server";
+import { formatDateTime } from "@/lib/labels";
 import type { Reminder, ReminderStatus } from "@souvenirs/shared";
 
 const STATUS_LABEL: Record<ReminderStatus, string> = {
@@ -20,7 +21,7 @@ export default async function RemindersPage() {
       <div>
         <h1 className="font-heading text-3xl">Recordatorios</h1>
         <p className="text-sm text-muted-foreground">
-          Se generan automáticamente al crear una factura con fecha de vencimiento.
+          Se programan al enviar una factura con vencimiento (según tus preferencias en Configuración) y un día antes de cada sesión.
         </p>
       </div>
       <Card>
@@ -40,6 +41,7 @@ export default async function RemindersPage() {
                 <TableRow>
                   <TableHead>Mensaje</TableHead>
                   <TableHead>Canal</TableHead>
+                  <TableHead>Para</TableHead>
                   <TableHead>Fecha</TableHead>
                   <TableHead>Estado</TableHead>
                 </TableRow>
@@ -47,13 +49,13 @@ export default async function RemindersPage() {
               <TableBody>
                 {reminders.map((reminder) => (
                   <TableRow key={reminder.id}>
-                    <TableCell className="font-medium">{reminder.message}</TableCell>
+                    <TableCell className="max-w-md font-medium whitespace-normal">{reminder.message.split("\n")[0]}</TableCell>
                     <TableCell>{CHANNEL_LABEL[reminder.channel]}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(reminder.remindAt).toLocaleString("es-AR", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
+                      {reminder.recipient === "CLIENT" ? (reminder.recipientEmail ?? "Cliente") : "Estudio"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDateTime(reminder.remindAt)}
                     </TableCell>
                     <TableCell>
                       <Badge variant={reminder.status === "SENT" ? "default" : "outline"}>

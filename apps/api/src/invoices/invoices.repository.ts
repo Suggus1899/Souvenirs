@@ -97,6 +97,7 @@ export class InvoicesRepository {
         },
         orderBy: { createdAt: 'desc' },
         ...pageArgs(query),
+        include: { payments: { select: { amount: true } } },
       }),
     );
   }

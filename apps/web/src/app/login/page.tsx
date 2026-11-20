@@ -1,13 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { extractErrorMessage } from "@/lib/api-error";
+
+/** Shown after a redirect from /api/auth/session-expired. */
+function ExpiredNotice() {
+  const expired = useSearchParams().get("expired") === "1";
+  if (!expired) return null;
+  return (
+    <p role="status" className="mb-4 rounded-md bg-muted px-3 py-2 text-sm">
+      Tu sesión expiró. Vuelve a iniciar sesión.
+    </p>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,16 +57,24 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl">Souvenirs</CardTitle>
-          <CardDescription>Ingresá a tu cuenta para gestionar clientes y pagos.</CardDescription>
+          <CardDescription>Ingresa a tu cuenta para gestionar clientes y pagos.</CardDescription>
         </CardHeader>
         <CardContent>
+          <Suspense>
+            <ExpiredNotice />
+          </Suspense>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" required autoComplete="email" />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Contraseña</Label>
+                <Link href="/forgot-password" className="text-xs text-muted-foreground underline underline-offset-4">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <Input
                 id="password"
                 name="password"
@@ -70,9 +89,9 @@ export default function LoginPage() {
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            ¿No tenés cuenta?{" "}
+            ¿No tienes cuenta?{" "}
             <Link href="/register" className="font-medium text-foreground underline underline-offset-4">
-              Creá tu estudio
+              Crea tu estudio
             </Link>
           </p>
         </CardContent>

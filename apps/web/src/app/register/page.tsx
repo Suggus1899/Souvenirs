@@ -49,8 +49,8 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Creá tu estudio</CardTitle>
-          <CardDescription>Empezá a gestionar clientes, reservas y pagos.</CardDescription>
+          <CardTitle className="text-2xl">Crea tu estudio</CardTitle>
+          <CardDescription>Empieza a gestionar clientes, reservas y pagos.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -83,9 +83,9 @@ export default function RegisterPage() {
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            ¿Ya tenés cuenta?{" "}
+            ¿Ya tienes cuenta?{" "}
             <Link href="/login" className="font-medium text-foreground underline underline-offset-4">
-              Ingresá
+              Ingresa
             </Link>
           </p>
         </CardContent>
