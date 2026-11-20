@@ -14,7 +14,7 @@ pnpm start:dev                # http://localhost:3000 — docs en http://localho
 ```
 
 Sin Docker: crea la base y ejecuta una vez
-`psql "$DATABASE_URL" -v runtime_password=runtime -f prisma/rls-setup.sql` antes de migrar.
+`psql "${DATABASE_URL%%\?*}" -v runtime_password=runtime -f prisma/rls-setup.sql` antes de migrar.
 
 ## Tests
 

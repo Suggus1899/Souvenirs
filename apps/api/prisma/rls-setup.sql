@@ -3,7 +3,9 @@
 -- is an ops concern that varies per host (some managed Postgres providers restrict
 -- CREATE ROLE), so it's kept separate and idempotent.
 --
--- Usage: psql "$DATABASE_URL" -v runtime_password='replace-me' -f prisma/rls-setup.sql
+-- Usage: psql "${DATABASE_URL%%\?*}" -v runtime_password='replace-me' -f prisma/rls-setup.sql
+-- (${DATABASE_URL%%\?*} drops the "?schema=...&connection_limit=..." part: those are
+-- Prisma-only parameters and psql rejects the URL with "invalid URI query parameter".)
 
 -- psql does not interpolate :'vars' inside dollar-quoted blocks (DO $$ ... $$), so the
 -- statement is built with a plain SELECT and executed with \gexec instead.

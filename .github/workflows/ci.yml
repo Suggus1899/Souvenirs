@@ -54,7 +54,7 @@ jobs:
       - run: pnpm test
       - name: Set up RLS role and migrate
         run: |
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v runtime_password=runtime -f prisma/rls-setup.sql
+          psql "${DATABASE_URL%%\?*}" -v ON_ERROR_STOP=1 -v runtime_password=runtime -f prisma/rls-setup.sql
           pnpm prisma:deploy
       - run: pnpm test:e2e
       - run: pnpm build

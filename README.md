@@ -205,7 +205,7 @@ pnpm db:up                     # Postgres 16 + rol app_runtime (solo la primera 
 Sin Docker: crea la base `souvenirs` y ejecuta una vez el setup de RLS antes de migrar:
 
 ```bash
-psql "$DATABASE_URL" -v runtime_password=runtime -f apps/api/prisma/rls-setup.sql
+psql "${DATABASE_URL%%\?*}" -v runtime_password=runtime -f apps/api/prisma/rls-setup.sql
 ```
 
 ### 2. Variables de entorno

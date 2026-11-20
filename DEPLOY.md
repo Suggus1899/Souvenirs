@@ -26,9 +26,12 @@ Crear `apps/mobile/.env` con `EXPO_PUBLIC_API_URL` apuntando a la misma URL púb
 (crea el rol `app_runtime` sin privilegios de owner, usado por `DATABASE_URL_RUNTIME`):
 
 ```bash
-psql "$DATABASE_URL" -v runtime_password='<password-fuerte-para-app_runtime>' \
+psql "${DATABASE_URL%%\?*}" -v runtime_password='<password-fuerte-para-app_runtime>' \
   -f apps/api/prisma/rls-setup.sql
 ```
+
+`${DATABASE_URL%%\?*}` quita los parámetros `?schema=…&connection_limit=…`, que son propios de Prisma:
+psql rechaza la URL con ellos (`invalid URI query parameter`).
 
 ```bash
 # Migraciones — NUNCA usar prisma:migrate (migrate dev) en producción
